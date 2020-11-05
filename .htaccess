@@ -3,6 +3,9 @@ php_flag display_errors on
 
 RewriteEngine On
 
+# DISABLE DIRECTORY INDEXES
+Options -Indexes
+
 RewriteCond %{HTTP:Authorization} ^(.*)
 RewriteRule .* - [e=HTTP_AUTHORIZATION:%1]
 
@@ -24,3 +27,4 @@ RewriteRule ^users$ controller/users.php [L]
 
 RewriteRule ^sessions/([0-9]+)$ controller/sessions.php?sessionid=$1 [L]
 RewriteRule ^sessions$ controller/sessions.php [L]
+RewriteRule ^test$ controller/test.php [L]

@@ -1,5 +1,10 @@
 <?php
 
+
+header('Access-Control-Allow-Origin: http://localhost:3000');
+header('Access-Control-Allow-Methods: POST, PATCH, OPTIONS, DELETE');
+header("Access-Control-Allow-Headers: *");
+header('Vary: Origin');
 /*  /sessions = POST - create a session / log in
     /sessions/3 = DELETE - log out a user
     /sessions/3 = PATCH - refresh session */
@@ -265,7 +270,7 @@ if (array_key_exists("sessionid", $_GET)) {
     // Make sure only POST allowed
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         $response = new Response();
-        $response->setHttpStatusCode(405);
+        $response->setHttpStatusCode(201);
         $response->setSuccess(false);
         $response->addMessage("Request method not allowed");
         $response->send();
@@ -278,7 +283,7 @@ if (array_key_exists("sessionid", $_GET)) {
     //die(json_encode($_SERVER['CONTENT_TYPE']));
     if ($_SERVER['CONTENT_TYPE'] !== 'application/json') {
         $response = new Response();
-        $response->setHttpStatusCode(400);
+        $response->setHttpStatusCode(200);
         $response->setSuccess(false);
         $response->addMessage("Content type header not set to JSON");
         $response->send();
@@ -289,7 +294,7 @@ if (array_key_exists("sessionid", $_GET)) {
 
     if (!$jsonData = json_decode($rawPostData)) {
         $response = new Response();
-        $response->setHttpStatusCode(400);
+        $response->setHttpStatusCode(200);
         $response->setSuccess(false);
         $response->addMessage("Request body is not valid JSON");
         $response->send();
@@ -298,7 +303,7 @@ if (array_key_exists("sessionid", $_GET)) {
 
     if (!isset($jsonData->username) || !isset($jsonData->password)) {
         $response = new Response();
-        $response->setHttpStatusCode(400);
+        $response->setHttpStatusCode(200);
         $response->setSuccess(false);
         (!isset($jsonData->username) ? $response->addMessage("Username not supplied") : false);
         (!isset($jsonData->password) ? $response->addMessage("Password not supplied") : false);
@@ -308,7 +313,7 @@ if (array_key_exists("sessionid", $_GET)) {
 
     if (strlen($jsonData->username) < 1 || strlen($jsonData->username) > 255  || strlen($jsonData->password) < 1 || strlen($jsonData->password) > 255) {
         $response = new Response();
-        $response->setHttpStatusCode(400);
+        $response->setHttpStatusCode(200);
         $response->setSuccess(false);
         (strlen($jsonData->username) < 1) ? $response->addMessage("Username cannot be blank") : false;
         (strlen($jsonData->username) > 255) ? $response->addMessage("Username must be less than 255 characters") : false;
@@ -331,7 +336,7 @@ if (array_key_exists("sessionid", $_GET)) {
 
         if ($rowCount === 0) {
             $response = new Response();
-            $response->setHttpStatusCode(401);
+            $response->setHttpStatusCode(201);
             $response->setSuccess(false);
             $response->addMessage("Username or password is incorrect");
             $response->send();
