@@ -72,7 +72,7 @@ try {
         exit;
     }
 
-    if (strtotime($returned_accesstokenexpiry) < time()) {
+    if (strtotime($returned_accesstokenexpiry) < (time() - 3600)) {
         $response = new Response();
         $response->setHttpStatusCode(401);
         $response->setSuccess(false);

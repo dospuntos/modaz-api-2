@@ -15,7 +15,7 @@ try {
     $response = new Response();
     $response->setHttpStatusCode(500);
     $response->setSuccess(false);
-    $response->addMessage("Database connecteion error");
+    $response->addMessage("Database connection error");
     $response->send();
     exit;
 }
@@ -123,17 +123,17 @@ if (array_key_exists("sessionid", $_GET)) {
             $refreshtoken = $jsonData->refresh_token;
 
             $query = $writeDB->prepare('
-                SELECT tblsessions.id AS sessionid, 
-                        tblsessions.userid AS userid, 
-                        accesstoken, 
-                        refreshtoken, 
-                        useractive, 
-                        loginattempts, 
-                        accesstokenexpiry, 
-                        refreshtokenexpiry 
-                    FROM tblsessions, tblusers 
-                    WHERE tblusers.id = tblsessions.userid 
-                    AND tblsessions.id = :sessionid 
+                SELECT tblsessions.id AS sessionid,
+                        tblsessions.userid AS userid,
+                        accesstoken,
+                        refreshtoken,
+                        useractive,
+                        loginattempts,
+                        accesstokenexpiry,
+                        refreshtokenexpiry
+                    FROM tblsessions, tblusers
+                    WHERE tblusers.id = tblsessions.userid
+                    AND tblsessions.id = :sessionid
                     AND tblsessions.accesstoken = :accesstoken
                     AND tblsessions.refreshtoken = :refreshtoken');
 
@@ -198,7 +198,7 @@ if (array_key_exists("sessionid", $_GET)) {
             $access_token_expiry_seconds = 1200;
             $refresh_token_expiry_seconds = 1209600;
 
-            $query = $writeDB->prepare('UPDATE tblsessions SET 
+            $query = $writeDB->prepare('UPDATE tblsessions SET
                 accesstoken = :accesstoken,
                 accesstokenexpiry = DATE_ADD(NOW(), INTERVAL :accesstokenexpiryseconds SECOND),
                 refreshtoken = :refreshtoken,
@@ -384,7 +384,7 @@ if (array_key_exists("sessionid", $_GET)) {
         $accesstoken = base64_encode(bin2hex(openssl_random_pseudo_bytes(24)) . time());
         $refreshtoken = base64_encode(bin2hex(openssl_random_pseudo_bytes(24)) . time());
 
-        $access_token_expiry_seconds = 1200;
+        $access_token_expiry_seconds = 12000;
         $refresh_token_expiry_seconds = 1209600;
     } catch (PDOException $ex) {
         $response = new Response();
@@ -404,19 +404,19 @@ if (array_key_exists("sessionid", $_GET)) {
         $query->bindParam(':id', $returned_id, PDO::PARAM_INT);
         $query->execute();
 
-        $stmt = 'INSERT INTO tblsessions 
-            (userid, 
-            accesstoken, 
-            accesstokenexpiry, 
-            refreshtoken, 
-            refreshtokenexpiry) 
-            VALUES 
-            (:userid, 
+        $stmt = 'INSERT INTO tblsessions
+            (userid,
+            accesstoken,
+            accesstokenexpiry,
+            refreshtoken,
+            refreshtokenexpiry)
+            VALUES
+            (:userid,
             :accesstoken,
-            date_add(NOW(), 
-            INTERVAL :accesstokenexpiryseconds SECOND), 
-            :refreshtoken, 
-            date_add(NOW(), 
+            date_add(NOW(),
+            INTERVAL :accesstokenexpiryseconds SECOND),
+            :refreshtoken,
+            date_add(NOW(),
             INTERVAL :refreshtokenexpiryseconds SECOND))';
 
         $query = $writeDB->prepare($stmt);
