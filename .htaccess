@@ -27,4 +27,9 @@ RewriteRule ^users$ controller/users.php [L]
 
 RewriteRule ^sessions/([0-9]+)$ controller/sessions.php?sessionid=$1 [L]
 RewriteRule ^sessions$ controller/sessions.php [L]
-RewriteRule ^test$ controller/test.php [L]
+
+RewriteRule ^products/([0-9]+)$ controller/products.php?productid=$1 [L]
+RewriteRule ^products/published$ controller/products.php?published=Y [L]
+RewriteRule ^products/unpublished$ controller/products.php?published=N [L]
+RewriteRule ^products/page/([0-9]+)$ controller/products.php?page=$1 [L]
+RewriteRule ^products$ controller/products.php [L]
