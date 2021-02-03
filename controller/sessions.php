@@ -21,23 +21,19 @@ if (array_key_exists("sessionid", $_GET)) {
     $sessionid = $_GET['sessionid'];
 
     if ($sessionid === '' || !is_numeric($sessionid)) {
-        $response = new Response();
-        $response->setHttpStatusCode(400);
-        $response->setSuccess(false);
-        ($sessionid === '' ? $response->addMessage("Session ID cannot be blank") : false);
-        (!is_numeric($sessionid) ? $response->addMessage("Session ID must be numeric") : false);
-        $response->send();
-        exit;
+        $messages = [];
+        if ($sessionid === '') $messages[] = "Session ID cannot be blank";
+        if (!is_numeric($sessionid)) $messages[] = "Session ID must be numeric";
+
+        sendResponse(400, false, empty($messages) ? null : $messages);
     }
 
     if (!isset($_SERVER['HTTP_AUTHORIZATION']) || strlen($_SERVER['HTTP_AUTHORIZATION']) < 1) {
-        $response = new Response();
-        $response->setHttpStatusCode(400);
-        $response->setSuccess(false);
-        (!isset($_SERVER['HTTP_AUTHORIZATION']) ? $response->addMessage("Access token is missing from the header") : false);
-        (strlen($_SERVER['HTTP_AUTHORIZATION']) < 1 ? $response->addMessage("Access token cannot be blank") : false);
-        $response->send();
-        exit;
+        $messages = [];
+        if (!isset($_SERVER['HTTP_AUTHORIZATION'])) $messages[] = "Access token is missing from the header";
+        if (strlen($_SERVER['HTTP_AUTHORIZATION']) < 1) $messages[] = "Access token cannot be blank";
+
+        sendResponse(400, false, empty($messages) ? null : $messages);
     }
 
     $accesstoken = $_SERVER['HTTP_AUTHORIZATION'];
@@ -54,63 +50,35 @@ if (array_key_exists("sessionid", $_GET)) {
             $rowCount = $query->rowCount();
 
             if ($rowCount === 0) {
-                $response = new Response();
-                $response->setHttpStatusCode(400);
-                $response->setSuccess(false);
-                $response->addMessage('Failed to log out of this session using access token provided');
-                $response->send();
-                exit;
+                sendResponse(400, false, 'Failed to log out of this session using access token provided');
             }
 
             $returnData = array();
             $returnData['session_id'] = intval($sessionid);
 
-            $response = new Response();
-            $response->setHttpStatusCode(200);
-            $response->setSuccess(true);
-            $response->addMessage('Logged out');
-            $response->setData($returnData);
-            $response->send();
-            exit;
+            sendResponse(200, true, 'Logged out', false, $returnData);
         } catch (PDOException $ex) {
             error_log('Cannot log out - ' . $ex);
-            $response = new Response();
-            $response->setHttpStatusCode(500);
-            $response->setSuccess(false);
-            $response->addMessage('There was an issue logging out - please try again');
-            $response->send();
-            exit;
+            sendResponse(500, false, 'There was an issue logging out - please try again');
         }
     } elseif ($_SERVER['REQUEST_METHOD'] === 'PATCH') { // Refresh token (get new access token if refresh token is still valid)
 
         if ($_SERVER['CONTENT_TYPE'] !== 'application/json') {
-            $response = new Response();
-            $response->setHttpStatusCode(400);
-            $response->setSuccess(false);
-            $response->addMessage('Content Type header not set to JSON');
-            $response->send();
-            exit;
+            sendResponse(400, false, "Content Type header not set to JSON");
         }
 
         $rawPatchData = file_get_contents('php://input');
 
         if (!$jsonData = json_decode($rawPatchData)) {
-            $response = new Response();
-            $response->setHttpStatusCode(400);
-            $response->setSuccess(false);
-            $response->addMessage('Request body is not valid JSON');
-            $response->send();
-            exit;
+            sendResponse(400, false, "Request body is not valid JSON");
         }
 
         if (!isset($jsonData->refresh_token) || strlen($jsonData->refresh_token) < 1) {
-            $response = new Response();
-            $response->setHttpStatusCode(400);
-            $response->setSuccess(false);
-            (!isset($jsonData->refresh_token) ? $response->addMessage('Refresh token not supplied') : false);
-            (strlen($jsonData->refresh_token) < 1 ? $response->addMessage('Refresh token cannot be blank') : false);
-            $response->send();
-            exit;
+            $messages = [];
+            if (!isset($jsonData->refresh_token)) $messages[] = "Refresh token not supplied";
+            if (strlen($jsonData->refresh_token) < 1) $messages[] = "Refresh token cannot be blank";
+
+            sendResponse(400, false, $messages);
         }
 
 
@@ -141,12 +109,7 @@ if (array_key_exists("sessionid", $_GET)) {
             $rowCount = $query->rowCount();
 
             if ($rowCount === 0) {
-                $response = new Response();
-                $response->setHttpStatusCode(401);
-                $response->setSuccess(false);
-                $response->addMessage('Access token or refresh token is incorrect for session id');
-                $response->send();
-                exit;
+                sendResponse(401, false, 'Access token or refresh token is incorrect for session id');
             }
 
             $row = $query->fetch(PDO::FETCH_ASSOC);
@@ -161,31 +124,16 @@ if (array_key_exists("sessionid", $_GET)) {
             $returned_refreshtokenexpiry = $row['refreshtokenexpiry'];
 
             if ($returned_useractive !== 'Y') {
-                $response = new Response();
-                $response->setHttpStatusCode(401);
-                $response->setSuccess(false);
-                $response->addMessage('User account is not active');
-                $response->send();
-                exit;
+                sendResponse(401, false, 'User account is not active');
             }
 
             if ($returned_loginattempts >= 3) {
-                $response = new Response();
-                $response->setHttpStatusCode(401);
-                $response->setSuccess(false);
-                $response->addMessage('User account is currently locked out');
-                $response->send();
-                exit;
+                sendResponse(401, false, 'User account is currently locked out');
             }
 
             // Check if refresh token has expired
             if (strtotime($returned_refreshtokenexpiry) < time()) {
-                $response = new Response();
-                $response->setHttpStatusCode(401);
-                $response->setSuccess(false);
-                $response->addMessage('Refresh token has expired, please log in again');
-                $response->send();
-                exit;
+                sendResponse(401, false, 'Refresh token has expired, please log in again');
             }
 
             $accesstoken = base64_encode(bin2hex(openssl_random_pseudo_bytes(24) . time()));
@@ -217,12 +165,7 @@ if (array_key_exists("sessionid", $_GET)) {
             $rowCount = $query->rowCount();
 
             if ($rowCount === 0) {
-                $response = new Response();
-                $response->setHttpStatusCode(401);
-                $response->setSuccess(false);
-                $response->addMessage('Access token could not be refreshed - please log in again');
-                $response->send();
-                exit;
+                sendResponse(401, false, 'Access token could not be refreshed - please log in again');
             }
 
             $returnData = array();
@@ -232,31 +175,14 @@ if (array_key_exists("sessionid", $_GET)) {
             $returnData['refresh_token'] = $refreshtoken;
             $returnData['refresh_token_expiry'] = $refresh_token_expiry_seconds;
 
-            $response = new Response();
-            $response->setHttpStatusCode(200);
-            $response->setSuccess(true);
-            $response->addMessage('Token refreshed');
-            $response->setData($returnData);
-            $response->send();
-            exit;
+            sendResponse(200, true, 'Token refreshed', false, $returnData);
         } catch (PDOException $ex) {
-            $response = new Response();
-            $response->setHttpStatusCode(500);
-            $response->setSuccess(false);
-            $response->addMessage('There was an issue refreshing access token - please log in again');
-            $response->send();
-            exit;
+            sendResponse(500, false, 'There was an issue refreshing access token - please log in again');
         }
     } else {
-        $response = new Response();
-        $response->setHttpStatusCode(405);
-        $response->setSuccess(false);
-        $response->addMessage('Request method not allowed');
-        $response->send();
-        exit;
+        sendResponse(405, false, 'Request method not allowed');
     }
 } elseif (empty($_GET)) { // create session using username and password
-
 
     // Make sure only POST allowed
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -278,25 +204,19 @@ if (array_key_exists("sessionid", $_GET)) {
     }
 
     if (!isset($jsonData->username) || !isset($jsonData->password)) {
-        $response = new Response();
-        $response->setHttpStatusCode(400);
-        $response->setSuccess(false);
-        (!isset($jsonData->username) ? $response->addMessage("Username not supplied") : false);
-        (!isset($jsonData->password) ? $response->addMessage("Password not supplied") : false);
-        $response->send();
-        exit;
+        $messages = [];
+        if (!isset($jsonData->username)) $messages[] = "Username not supplied";
+        if (!isset($jsonData->password)) $messages[] = "Password not supplied";
+        sendResponse(400, false, empty($messages) ? null : $messages);
     }
 
     if (strlen($jsonData->username) < 1 || strlen($jsonData->username) > 255  || strlen($jsonData->password) < 1 || strlen($jsonData->password) > 255) {
-        $response = new Response();
-        $response->setHttpStatusCode(400);
-        $response->setSuccess(false);
-        (strlen($jsonData->username) < 1) ? $response->addMessage("Username cannot be blank") : false;
-        (strlen($jsonData->username) > 255) ? $response->addMessage("Username must be less than 255 characters") : false;
-        (strlen($jsonData->password) < 1) ? $response->addMessage("Password cannot be blank") : false;
-        (strlen($jsonData->password) > 255) ? $response->addMessage("Password must be less than 255 characters") : false;
-        $response->send();
-        exit;
+        $messages = [];
+        if (strlen($jsonData->username) > 255) $messages[] = "Username must be less than 255 characters";
+        if (strlen($jsonData->username) < 1) $messages[] = "Username cannot be blank";
+        if (strlen($jsonData->password) > 255) $messages[] = "Password must be less than 255 characters";
+        if (strlen($jsonData->password) < 1) $messages[] = "Password cannot be blank";
+        sendResponse(400, false, empty($messages) ? null : $messages);
     }
 
     try {
