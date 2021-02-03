@@ -10,13 +10,20 @@ class Product
     private $_name;
     private $_description;
     private $_images;
+    private $_price;
+    private $_zinprice;
+    private $_price_discount;
 
-    public function __construct($id, $name, $description, $images)
+
+    public function __construct($id, $name, $description, $images, $price = 0, $zinprice = 0, $price_discount = 0)
     {
         $this->setID($id);
         $this->setName($name);
         $this->setDescription($description);
         $this->setImages($images);
+        $this->setPrice($price);
+        $this->setZinprice($zinprice);
+        $this->setPriceDiscount($price_discount);
     }
 
     public function getID()
@@ -37,6 +44,21 @@ class Product
     public function getImages()
     {
         return $this->_images;
+    }
+
+    public function getPrice()
+    {
+        return $this->_price;
+    }
+
+    public function getZinprice()
+    {
+        return $this->_zinprice;
+    }
+
+    public function getPriceDiscount()
+    {
+        return $this->_price_discount;
     }
 
 
@@ -77,6 +99,34 @@ class Product
         }
     }
 
+    public function setPrice($price)
+    {
+        if (($price !== null) && (!is_numeric($price) || $price < 0 || $price > 9223372036854775807 || $this->_price !== null)) {
+            throw new ProductException("Product price error");
+        }
+
+        $this->_price = $price;
+    }
+
+    public function setZinprice($zinprice)
+    {
+        if (($zinprice !== null) && (!is_numeric($zinprice) || $zinprice < 0 || $zinprice > 9223372036854775807 || $this->_zinprice !== null)) {
+            throw new ProductException("Product ZIN price error");
+        }
+
+        $this->_zinprice = $zinprice;
+    }
+
+    public function setPriceDiscount($price_discount)
+    {
+        if (($price_discount !== null) && (!is_numeric($price_discount) || $price_discount < 0 || $price_discount > 9223372036854775807 || $this->_price_discount !== null)) {
+            throw new ProductException("Product discount price error");
+        }
+
+        $this->_price_discount = $price_discount;
+    }
+
+
     public function returnProductAsArray()
     {
         $product = array();
@@ -84,6 +134,10 @@ class Product
         $product['name'] = $this->getName();
         $product['description'] = $this->getDescription();
         $product['images'] = $this->getImages();
+        $product['price'] = $this->getPrice();
+        $product['zinprice'] = $this->getZinprice();
+        $product['price_discount'] = $this->getPriceDiscount();
+
         return $product;
     }
 }
