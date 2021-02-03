@@ -2,6 +2,7 @@
 
 require_once('db.php');
 require_once('../model/Response.php');
+require_once('../functions.php');
 
 // Try to create a DB connection
 try {
@@ -9,69 +10,45 @@ try {
     $writeDB = DB::connectWriteDB();
 } catch (PDOException $ex) {
     error_log('Connection error: ' . $ex, 0);
-    $response = new Response();
-    $response->setHttpStatusCode(500);
-    $response->setSuccess(false);
-    $response->addMessage("Database connection error");
-    $response->send();
-    exit;
+    sendResponse(500, false, "Database connection error");
 }
 
 // Only allow POST method
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    $response = new Response();
-    $response->setHttpStatusCode(405);
-    $response->setSuccess(false);
-    $response->addMessage("Request method not allowed");
-    $response->send();
-    exit;
+    sendResponse(405, false, "Request method not allowed");
 }
 
 // Check for JSON content type
 if ($_SERVER['CONTENT_TYPE'] !== 'application/json') {
-    $response = new Response();
-    $response->setHttpStatusCode(400);
-    $response->setSuccess(false);
-    $response->addMessage("Content Type header not set to JSON");
-    $response->send();
-    exit;
+    sendResponse(400, false, "Content Type header not set to JSON");
 }
 
 // Get and validate JSON body
 $rawPostData = file_get_contents('php://input');
 
 if (!$jsonData = json_decode($rawPostData)) {
-    $response = new Response();
-    $response->setHttpStatusCode(400);
-    $response->setSuccess(false);
-    $response->addMessage("Request body is not valid JSON");
-    $response->send();
-    exit;
+    sendResponse(400, false, "Request body is not valid JSON");
 }
 
 if (!isset($jsonData->fullname) || !isset($jsonData->username) || !isset($jsonData->password)) {
-    $response = new Response();
-    $response->setHttpStatusCode(400);
-    $response->setSuccess(false);
-    (!isset($jsonData->fullname) ? $response->addMessage("Full name not supplied") : false);
-    (!isset($jsonData->username) ? $response->addMessage("Username not supplied") : false);
-    (!isset($jsonData->password) ? $response->addMessage("Password not supplied") : false);
-    $response->send();
-    exit;
+    $messages = [];
+    if (!isset($jsonData->fullname)) $messages[] = "Full name not supplied";
+    if (!isset($jsonData->username)) $messages[] = "Username not supplied";
+    if (!isset($jsonData->password)) $messages[] = "Password not supplied";
+
+    sendResponse(400, false, empty($messages) ? null : $messages);
 }
 
 if (strlen($jsonData->fullname) < 1 || strlen($jsonData->fullname > 255) || strlen($jsonData->username) < 1 || strlen($jsonData->username > 255) || strlen($jsonData->password) < 1 || strlen($jsonData->password > 255)) {
-    $response = new Response();
-    $response->setHttpStatusCode(400);
-    $response->setSuccess(false);
-    (strlen($jsonData->fullname < 1) ? $response->addMessage("Full name cannot be blank") : false);
-    (strlen($jsonData->fullname > 255) ? $response->addMessage("Full name cannot be greater than 255 characters") : false);
-    (strlen($jsonData->username < 1) ? $response->addMessage("Username cannot be blank") : false);
-    (strlen($jsonData->username > 255) ? $response->addMessage("Username cannot be greater than 255 characters") : false);
-    (strlen($jsonData->password < 1) ? $response->addMessage("Password cannot be blank") : false);
-    (strlen($jsonData->password > 255) ? $response->addMessage("Password cannot be greater than 255 characters") : false);
-    $response->send();
-    exit;
+    $messages = [];
+    if (strlen($jsonData->fullname) > 255) $messages[] = "Full name cannot be greater than 255 characters";
+    if (strlen($jsonData->fullname) < 1) $messages[] = "Full name cannot be blank";
+    if (strlen($jsonData->username) > 255) $messages[] = "Username cannot be greater than 255 characters";
+    if (strlen($jsonData->username) < 1) $messages[] = "Username cannot be blank";
+    if (strlen($jsonData->password) > 255) $messages[] = "Password cannot be greater than 255 characters";
+    if (strlen($jsonData->password) < 1) $messages[] = "Password cannot be blank";
+
+    sendResponse(400, false, empty($messages) ? null : $messages);
 }
 
 $fullname = trim($jsonData->fullname);
@@ -87,12 +64,7 @@ try {
     $rowCount = $query->rowCount();
 
     if ($rowCount !== 0) {
-        $response = new Response();
-        $response->setHttpStatusCode(409);
-        $response->setSuccess(false);
-        $response->addMessage("Username already exists");
-        $response->send();
-        exit;
+        sendResponse(409, false, "Username already exists");
     }
 
     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
@@ -106,12 +78,7 @@ try {
     $rowCount = $query->rowCount();
 
     if ($rowCount === 0) {
-        $response = new Response();
-        $response->setHttpStatusCode(500);
-        $response->setSuccess(false);
-        $response->addMessage("There was an issue creating a user account - please try again.");
-        $response->send();
-        exit;
+        sendResponse(500, false, "There was an issue creating a user account - please try again.");
     }
 
     $lastUserID = $writeDB->lastInsertId();
@@ -121,19 +88,8 @@ try {
     $returnData['fullname'] = $fullname;
     $returnData['username'] = $username;
 
-    $response = new Response();
-    $response->setHttpStatusCode(201);
-    $response->setSuccess(true);
-    $response->addMessage('User created');
-    $response->setData($returnData);
-    $response->send();
-    exit;
+    sendResponse(201, true, "User created", false, $returnData);
 } catch (PDOException $ex) {
     error_Log("Database query error: " . $ex, 0);
-    $response = new Response();
-    $response->setHttpStatusCode(500);
-    $response->setSuccess(false);
-    $response->addMessage("There was an issue creating a user account - please try again.");
-    $response->send();
-    exit;
+    sendResponse(500, false, "There was an issue creating a user account - please try again.");
 }
