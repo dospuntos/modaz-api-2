@@ -6,18 +6,14 @@
 
 require_once('db.php');
 require_once('../model/Response.php');
+require_once('../functions.php');
 
 try {
 
     $writeDB = DB::ConnectWriteDB();
 } catch (PDOException $ex) {
     error_log('Connection error: ' . $ex, 0);
-    $response = new Response();
-    $response->setHttpStatusCode(500);
-    $response->setSuccess(false);
-    $response->addMessage("Database connection error");
-    $response->send();
-    exit;
+    sendResponse(500, false, "Database connection error");
 }
 
 if (array_key_exists("sessionid", $_GET)) {
@@ -264,12 +260,7 @@ if (array_key_exists("sessionid", $_GET)) {
 
     // Make sure only POST allowed
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        $response = new Response();
-        $response->setHttpStatusCode(405);
-        $response->setSuccess(false);
-        $response->addMessage("Request method not allowed");
-        $response->send();
-        exit;
+        sendResponse(405, false, "Request method not allowed");
     }
 
     // Wait 1 second to stop brute force attacks.
@@ -277,23 +268,13 @@ if (array_key_exists("sessionid", $_GET)) {
 
     //die(json_encode($_SERVER['CONTENT_TYPE']));
     if ($_SERVER['CONTENT_TYPE'] !== 'application/json') {
-        $response = new Response();
-        $response->setHttpStatusCode(400);
-        $response->setSuccess(false);
-        $response->addMessage("Content type header not set to JSON");
-        $response->send();
-        exit;
+        sendResponse(400, false, "Content type header not set to JSON");
     }
 
     $rawPostData = file_get_contents('php://input');
 
     if (!$jsonData = json_decode($rawPostData)) {
-        $response = new Response();
-        $response->setHttpStatusCode(400);
-        $response->setSuccess(false);
-        $response->addMessage("Request body is not valid JSON");
-        $response->send();
-        exit;
+        sendResponse(400, false, "Request body is not valid JSON");
     }
 
     if (!isset($jsonData->username) || !isset($jsonData->password)) {
@@ -330,12 +311,7 @@ if (array_key_exists("sessionid", $_GET)) {
         $rowCount = $query->rowCount();
 
         if ($rowCount === 0) {
-            $response = new Response();
-            $response->setHttpStatusCode(401);
-            $response->setSuccess(false);
-            $response->addMessage("Username or password is incorrect");
-            $response->send();
-            exit;
+            sendResponse(401, false, "Username or password is incorrect");
         }
 
         $row = $query->fetch(PDO::FETCH_ASSOC);
@@ -349,21 +325,11 @@ if (array_key_exists("sessionid", $_GET)) {
 
         // Check if user account is active
         if ($returned_useractive !== 'Y') {
-            $response = new Response();
-            $response->setHttpStatusCode(401);
-            $response->setSuccess(false);
-            $response->addMessage("User account not active");
-            $response->send();
-            exit;
+            sendResponse(401, false, "User account not active");
         }
 
         if ($returned_logginattempts >= 3) {
-            $response = new Response();
-            $response->setHttpStatusCode(401);
-            $response->setSuccess(false);
-            $response->addMessage("User account is currently locked out");
-            $response->send();
-            exit;
+            sendResponse(401, false, "User account is currently locked out");
         }
 
         // Check if password is not valid
@@ -372,12 +338,7 @@ if (array_key_exists("sessionid", $_GET)) {
             $query->bindParam(':id', $returned_id, PDO::PARAM_INT);
             $query->execute();
 
-            $response = new Response();
-            $response->setHttpStatusCode(401);
-            $response->setSuccess(false);
-            $response->addMessage("Username or password is incorrect");
-            $response->send();
-            exit;
+            sendResponse(401, false, "Username or password is incorrect");
         }
 
         // Create tokens
@@ -387,12 +348,7 @@ if (array_key_exists("sessionid", $_GET)) {
         $access_token_expiry_seconds = 12000;
         $refresh_token_expiry_seconds = 1209600;
     } catch (PDOException $ex) {
-        $response = new Response();
-        $response->setHttpStatusCode(500);
-        $response->setSuccess(false);
-        $response->addMessage("There was an issue logging in");
-        $response->send();
-        exit;
+        sendResponse(500, false, "There was an issue logging in");
     }
 
     // Try to save session in database
@@ -438,27 +394,12 @@ if (array_key_exists("sessionid", $_GET)) {
         $returnData['refresh_token'] = $refreshtoken;
         $returnData['refresh_token_expires_in'] = $refresh_token_expiry_seconds;
 
-        $response = new Response();
-        $response->setHttpStatusCode(201);
-        $response->setSuccess(true);
-        $response->setData($returnData);
-        $response->send();
-        exit;
+        sendResponse(201, true, null, false, $returnData);
     } catch (PDOException $ex) {
         error_log("Login error: " . $ex, 0);
         $writeDB->rollBack();
-        $response = new Response();
-        $response->setHttpStatusCode(500);
-        $response->setSuccess(false);
-        $response->addMessage("There was an issue logging in - please try again");
-        $response->send();
-        exit;
+        sendResponse(500, false, "There was an issue logging in - please try again");
     }
 } else {
-    $response = new Response();
-    $response->setHttpStatusCode(404);
-    $response->setSuccess(false);
-    $response->addMessage("Endpoint not found");
-    $response->send();
-    exit;
+    sendResponse(404, false, "Endpoint not found");
 }
