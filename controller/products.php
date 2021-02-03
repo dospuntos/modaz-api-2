@@ -27,7 +27,7 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
 
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         try {
-            $query = $readDB->prepare('SELECT id, name, description FROM nxhnk_modaz_products WHERE id = :productid');
+            $query = $readDB->prepare('SELECT id, name, description, images FROM nxhnk_modaz_products WHERE id = :productid');
             $query->bindParam(':productid', $productid, PDO::PARAM_INT);
             $query->execute();
 
@@ -38,7 +38,7 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
             }
 
             while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
-                $product = new Product($row['id'], $row['name'], $row['description']);
+                $product = new Product($row['id'], $row['name'], $row['description'], $row['images']);
                 $productArray[] = $product->returnProductAsArray();
             }
 
@@ -68,7 +68,7 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
 
         try {
 
-            $query = $readDB->prepare('SELECT id, name, description FROM nxhnk_modaz_products WHERE state = :published');
+            $query = $readDB->prepare('SELECT id, name, description, images FROM nxhnk_modaz_products WHERE state = :published');
             $query->bindParam(':published', $published, PDO::PARAM_STR);
             $query->execute();
 
@@ -77,7 +77,7 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
             $productsArray = array();
 
             while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
-                $product = new Product($row['id'], $row['name'], $row['description']);
+                $product = new Product($row['id'], $row['name'], $row['description'], $row['images']);
                 $productsArray[] = $product->returnProductAsArray();
             }
             $returnData['rows_returned'] = $rowCount;
@@ -124,7 +124,7 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
 
             $offset = ($page == 1 ? 0 : ($limitPerPage * ($page - 1)));
 
-            $query = $readDB->prepare('SELECT id, name, description FROM nxhnk_modaz_products LIMIT :pglimit OFFSET :offset');
+            $query = $readDB->prepare('SELECT id, name, description, images FROM nxhnk_modaz_products LIMIT :pglimit OFFSET :offset');
             $query->bindParam(':pglimit', $limitPerPage, PDO::PARAM_INT);
             $query->bindParam(':offset', $offset, PDO::PARAM_INT);
             $query->execute();
@@ -134,7 +134,7 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
             $productsArray = array();
 
             while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
-                $product = new Product($row['id'], $row['name'], $row['description']);
+                $product = new Product($row['id'], $row['name'], $row['description'], $row['images']);
                 $productsArray[] = $product->returnProductAsArray();
             }
 
@@ -160,7 +160,7 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
 
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         try {
-            $query = $readDB->prepare('SELECT id, name, description from nxhnk_modaz_products');
+            $query = $readDB->prepare('SELECT id, name, description, images from nxhnk_modaz_products');
             $query->execute();
 
             $productsArray = array();
@@ -168,7 +168,7 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
             $rowCount = $query->rowCount();
 
             while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
-                $product = new Product($row['id'], $row['name'], $row['description']);
+                $product = new Product($row['id'], $row['name'], $row['description'], $row['images']);
                 $productsArray[] = $product->returnProductAsArray();
             }
 
