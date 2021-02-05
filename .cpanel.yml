@@ -1,0 +1,5 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/ksejvvqd/public_html/api/2s
+    - /bin/cp -R * $DEPLOYPATH

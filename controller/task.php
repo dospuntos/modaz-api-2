@@ -72,11 +72,11 @@ try {
         exit;
     }
 
-    if (strtotime($returned_accesstokenexpiry) < (time() - 3600)) {
+    if (strtotime($returned_accesstokenexpiry) < (time())) {
         $response = new Response();
         $response->setHttpStatusCode(401);
         $response->setSuccess(false);
-        $response->addMessage("Access token expired");
+        $response->addMessage("Access token expired (Current time: " . time() . ", expiration time: " . strtotime($returned_accesstokenexpiry));
         $response->send();
         exit;
     }
