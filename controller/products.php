@@ -7,7 +7,7 @@ require_once('../functions.php');
 
 try {
     $writeDB = DB::connectWriteDB();
-    $readDB = DB::connectProductDB();
+    $readDB = DB::connectReadDB();
 } catch (PDOException $ex) {
     error_log("Connection error - " . $ex, 0);
     sendResponse(500, false, "Database connection error");
@@ -27,7 +27,7 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
 
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         try {
-            $query = $readDB->prepare('SELECT id, name, description, images, price, zinprice, price_discount FROM nxhnk_modaz_products WHERE id = :productid');
+            $query = $readDB->prepare("SELECT id, name, description, images, price, zinprice, price_discount FROM $readDB->tblproducts WHERE id = :productid");
             $query->bindParam(':productid', $productid, PDO::PARAM_INT);
             $query->execute();
 
@@ -68,7 +68,7 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
 
         try {
 
-            $query = $readDB->prepare('SELECT id, name, description, images, price, zinprice, price_discount FROM nxhnk_modaz_products WHERE state = :published');
+            $query = $readDB->prepare("SELECT id, name, description, images, price, zinprice, price_discount FROM $readDB->tblproducts WHERE state = :published");
             $query->bindParam(':published', $published, PDO::PARAM_STR);
             $query->execute();
 
@@ -106,7 +106,7 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
 
         try {
 
-            $query = $readDB->prepare('SELECT COUNT(id) as totalNoOfProducts from nxhnk_modaz_products');
+            $query = $readDB->prepare("SELECT COUNT(id) as totalNoOfProducts from $readDB->tblproducts");
             $query->execute();
 
             $row = $query->fetch(PDO::FETCH_ASSOC);
@@ -124,7 +124,7 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
 
             $offset = ($page == 1 ? 0 : ($limitPerPage * ($page - 1)));
 
-            $query = $readDB->prepare('SELECT id, name, description, images, price, zinprice, price_discount FROM nxhnk_modaz_products LIMIT :pglimit OFFSET :offset');
+            $query = $readDB->prepare("SELECT id, name, description, images, price, zinprice, price_discount FROM $readDB->tblproducts LIMIT :pglimit OFFSET :offset");
             $query->bindParam(':pglimit', $limitPerPage, PDO::PARAM_INT);
             $query->bindParam(':offset', $offset, PDO::PARAM_INT);
             $query->execute();
@@ -160,7 +160,7 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
 
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         try {
-            $query = $readDB->prepare('SELECT id, name, description, images, price, zinprice, price_discount from nxhnk_modaz_products');
+            $query = $readDB->prepare("SELECT id, name, description, images, price, zinprice, price_discount from $readDB->tblproducts");
             $query->execute();
 
             $productsArray = array();

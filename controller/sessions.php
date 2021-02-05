@@ -42,7 +42,7 @@ if (array_key_exists("sessionid", $_GET)) {
 
         try {
 
-            $query = $writeDB->prepare('DELETE FROM tblsessions WHERE id = :sessionid and accesstoken = :accesstoken');
+            $query = $writeDB->prepare("DELETE FROM $writeDB->tblsessions WHERE id = :sessionid and accesstoken = :accesstoken");
             $query->bindParam(':sessionid', $sessionid, PDO::PARAM_INT);
             $query->bindParam(':accesstoken', $accesstoken, PDO::PARAM_STR);
             $query->execute();
@@ -86,20 +86,20 @@ if (array_key_exists("sessionid", $_GET)) {
 
             $refreshtoken = $jsonData->refresh_token;
 
-            $query = $writeDB->prepare('
-                SELECT tblsessions.id AS sessionid,
-                        tblsessions.userid AS userid,
+            $query = $writeDB->prepare("
+                SELECT $writeDB->tblsessions.id AS sessionid,
+                        $writeDB->tblsessions.userid AS userid,
                         accesstoken,
                         refreshtoken,
                         useractive,
                         loginattempts,
                         accesstokenexpiry,
                         refreshtokenexpiry
-                    FROM tblsessions, tblusers
-                    WHERE tblusers.id = tblsessions.userid
-                    AND tblsessions.id = :sessionid
-                    AND tblsessions.accesstoken = :accesstoken
-                    AND tblsessions.refreshtoken = :refreshtoken');
+                    FROM $writeDB->tblsessions, $writeDB->tblusers
+                    WHERE $writeDB->tblusers.id = $writeDB->tblsessions.userid
+                    AND $writeDB->tblsessions.id = :sessionid
+                    AND $writeDB->tblsessions.accesstoken = :accesstoken
+                    AND $writeDB->tblsessions.refreshtoken = :refreshtoken");
 
             $query->bindParam(':sessionid', $sessionid, PDO::PARAM_INT);
             $query->bindParam(':accesstoken', $accesstoken, PDO::PARAM_STR);
@@ -142,7 +142,7 @@ if (array_key_exists("sessionid", $_GET)) {
             $access_token_expiry_seconds = 1200;
             $refresh_token_expiry_seconds = 1209600;
 
-            $query = $writeDB->prepare('UPDATE tblsessions SET
+            $query = $writeDB->prepare("UPDATE $writeDB->tblsessions SET
                 accesstoken = :accesstoken,
                 accesstokenexpiry = DATE_ADD(NOW(), INTERVAL :accesstokenexpiryseconds SECOND),
                 refreshtoken = :refreshtoken,
@@ -151,7 +151,7 @@ if (array_key_exists("sessionid", $_GET)) {
                 AND userid = :userid
                 AND accesstoken = :returnedaccesstoken
                 AND refreshtoken = :returnedrefreshtoken
-             ');
+             ");
             $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
             $query->bindParam(':sessionid', $returned_sessionid, PDO::PARAM_INT);
             $query->bindParam(':accesstoken', $accesstoken, PDO::PARAM_STR);
@@ -224,7 +224,7 @@ if (array_key_exists("sessionid", $_GET)) {
         $username = $jsonData->username;
         $password = $jsonData->password;
 
-        $query = $writeDB->prepare('SELECT id, fullname, username, password, useractive, loginattempts FROM tblusers WHERE username = :username');
+        $query = $writeDB->prepare("SELECT id, fullname, username, password, useractive, loginattempts FROM $writeDB->tblusers WHERE username = :username");
         $query->bindParam(':username', $username, PDO::PARAM_STR);
         $query->execute();
 
@@ -254,7 +254,7 @@ if (array_key_exists("sessionid", $_GET)) {
 
         // Check if password is not valid
         if (!password_verify($password, $returned_password)) {
-            $query = $writeDB->prepare('UPDATE tblusers SET loginattempts = loginattempts+1 WHERE id = :id');
+            $query = $writeDB->prepare("UPDATE $writeDB->tblusers SET loginattempts = loginattempts+1 WHERE id = :id");
             $query->bindParam(':id', $returned_id, PDO::PARAM_INT);
             $query->execute();
 
@@ -276,11 +276,11 @@ if (array_key_exists("sessionid", $_GET)) {
 
         $writeDB->beginTransaction();
 
-        $query = $writeDB->prepare('UPDATE tblusers SET loginattempts = 0 WHERE id = :id');
+        $query = $writeDB->prepare("UPDATE $writeDB->tblusers SET loginattempts = 0 WHERE id = :id");
         $query->bindParam(':id', $returned_id, PDO::PARAM_INT);
         $query->execute();
 
-        $stmt = 'INSERT INTO tblsessions
+        $stmt = "INSERT INTO $writeDB->tblsessions
             (userid,
             accesstoken,
             accesstokenexpiry,
@@ -293,7 +293,7 @@ if (array_key_exists("sessionid", $_GET)) {
             INTERVAL :accesstokenexpiryseconds SECOND),
             :refreshtoken,
             date_add(NOW(),
-            INTERVAL :refreshtokenexpiryseconds SECOND))';
+            INTERVAL :refreshtokenexpiryseconds SECOND))";
 
         $query = $writeDB->prepare($stmt);
 

@@ -1,38 +1,49 @@
 <?php
 
+// Get Joomla configuration
+$parentparentdir = basename(dirname(dirname(__FILE__)));
+if ($parentparentdir === "2") { // Live API v2 - include config file from Joomla
+    include_once('../../../configuration.php');
+} elseif ($parentparentdir === "2s") { // Staging API v2 on server, include config file for staging site
+    include_once('../../../staging/configuration.php');
+} else {
+    include_once('../configuration.php');
+}
+
 class DB
 {
     private static $writeDBConnection;
     private static $readDBConnection;
-    private static $productDBConnection;
 
     public static function connectWriteDB()
     {
+        $var_cls = new JConfig(); // object of the class
         if (self::$writeDBConnection === null) {
-            self::$writeDBConnection = new PDO('mysql:host=localhost;dbname=tasksdb;charset=utf8', 'root', '');
+            self::$writeDBConnection = new PDO('mysql:host=' . $var_cls->host . ';dbname=' . $var_cls->db . ';charset=utf8', $var_cls->user, $var_cls->password);
             self::$writeDBConnection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             self::$writeDBConnection->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+
+            // set table names
+            self::$writeDBConnection->tblusers = $var_cls->dbprefix . "modaz_users";
+            self::$writeDBConnection->tblsessions = $var_cls->dbprefix . "modaz_sessions";
+            self::$writeDBConnection->tblproducts = $var_cls->dbprefix . "modaz_products";
         }
         return self::$writeDBConnection;
     }
 
     public static function connectReadDB()
     {
+        $var_cls = new JConfig(); // object of the class
         if (self::$readDBConnection === null) {
-            self::$readDBConnection = new PDO('mysql:host=localhost;dbname=tasksdb;charset=utf8', 'root', '');
+            self::$readDBConnection = new PDO('mysql:host=' . $var_cls->host . ';dbname=' . $var_cls->db . ';charset=utf8', $var_cls->user, $var_cls->password);
             self::$readDBConnection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             self::$readDBConnection->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+
+            // set table names
+            self::$readDBConnection->tblusers = $var_cls->dbprefix . "modaz_users";
+            self::$readDBConnection->tblsessions = $var_cls->dbprefix . "modaz_sessions";
+            self::$readDBConnection->tblproducts = $var_cls->dbprefix . "modaz_products";
         }
         return self::$readDBConnection;
-    }
-
-    public static function connectProductDB()
-    {
-        if (self::$productDBConnection === null) {
-            self::$productDBConnection = new PDO('mysql:host=localhost;dbname=modazv2;charset=utf8', 'root', '');
-            self::$productDBConnection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            self::$productDBConnection->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
-        }
-        return self::$productDBConnection;
     }
 }

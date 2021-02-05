@@ -45,7 +45,7 @@ function checkAuthStatusAndReturnUserID($writeDB)
     $accesstoken = $_SERVER['HTTP_AUTHORIZATION'];
 
     try {
-        $query = $writeDB->prepare('SELECT userid, accesstokenexpiry, useractive, loginattempts FROM tblsessions, tblusers WHERE tblsessions.userid = tblusers.id AND accesstoken = :accesstoken');
+        $query = $writeDB->prepare("SELECT userid, accesstokenexpiry, useractive, loginattempts FROM $writeDB->tblsessions, $writeDB->tblusers WHERE $writeDB->tblsessions.userid = $writeDB->tblusers.id AND accesstoken = :accesstoken");
         $query->bindParam(':accesstoken', $accesstoken, PDO::PARAM_STR);
         $query->execute();
 
