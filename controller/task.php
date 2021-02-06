@@ -4,6 +4,31 @@ require_once('db.php');
 require_once('../model/Task.php');
 require_once('../model/Response.php');
 
+if (isset($_SERVER['HTTP_ORIGIN'])) {
+    header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
+} else {
+    header('Access-Control-Allow-Origin: http://localhost:8080');
+}
+header('Access-Control-Allow-Credentials: true');
+header('Access-Control-Max-Age: 86400');    // cache for 1 day
+header('Access-Control-Allow-Methods: GET, POST, PATCH, OPTIONS, DELETE');
+header("Access-Control-Allow-Headers: *");
+header('Vary: Origin');
+header('Content-type: application/json;charset=utf-8');
+
+// Access-Control headers are received during OPTIONS requests
+if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+
+    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD']))
+        // may also be using PUT, PATCH, HEAD etc
+        header("Access-Control-Allow-Methods: GET, POST, PATCH, OPTIONS, DELETE");
+
+    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']))
+        header("Access-Control-Allow-Headers: {$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
+
+    exit(0);
+}
+
 try {
     $writeDB = DB::connectWriteDB();
     $readDB = DB::connectReadDB();
@@ -32,7 +57,7 @@ if (!isset($_SERVER['HTTP_AUTHORIZATION']) || strlen($_SERVER['HTTP_AUTHORIZATIO
 $accesstoken = $_SERVER['HTTP_AUTHORIZATION'];
 
 try {
-    $query = $writeDB->prepare('SELECT userid, accesstokenexpiry, useractive, loginattempts FROM tblsessions, tblusers WHERE tblsessions.userid = tblusers.id AND accesstoken = :accesstoken');
+    $query = $writeDB->prepare("SELECT userid, accesstokenexpiry, useractive, loginattempts FROM $writeDB->tblsessions, $writeDB->tblusers WHERE $writeDB->tblsessions.userid = $writeDB->tblusers.id AND accesstoken = :accesstoken");
     $query->bindParam(':accesstoken', $accesstoken, PDO::PARAM_STR);
     $query->execute();
 
@@ -109,7 +134,7 @@ if (array_key_exists("taskid", $_GET)) { // Return task by ID
 
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         try {
-            $query = $readDB->prepare('SELECT id, title, description, DATE_FORMAT(deadline, "%d/%m/%Y %H:%i") as deadline, completed FROM tbltasks WHERE id = :taskid AND userid = :userid');
+            $query = $readDB->prepare("SELECT id, title, description, DATE_FORMAT(deadline, "%d/%m/%Y %H:%i") as deadline, completed FROM tbltasks WHERE id = :taskid AND userid = :userid");
             $query->bindParam(':taskid', $taskid, PDO::PARAM_INT);
             $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
             $query->execute();
