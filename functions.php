@@ -1,7 +1,7 @@
 <?php
 
 require_once('controller/db.php');
-require_once('model/response.php');
+require_once('model/Response.php');
 
 function sendResponse($statusCode, $success, $message = null, $toCache = false, $data = null)
 {
