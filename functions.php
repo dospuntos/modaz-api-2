@@ -133,3 +133,29 @@ function simpleCheckAuthStatusAndReturnUserID($writeDB)
     }
     // End auth script
 }
+
+function joinProductsById($productsArray)
+{
+    // Join items and return array with products and variants
+    $result = array();
+    foreach ($productsArray as $i => $item) {
+        $mainProduct = array_slice($item, 0, 19);
+        $variant = array_slice($item, 19);
+
+        if (!array_key_exists($item['id'], $result)) {
+            $result[$item['id']] = array();
+            $result[$item['id']] = $mainProduct;
+            $result[$item['id']]['totalstock'] = 0;
+        }
+        // Add variants
+        $result[$item['id']]['variants'][] = $variant;
+
+        // Update totalstock-count
+        end($result[$item['id']]['variants']);
+        $last_id = key($result[$item['id']]['variants']);
+        $result[$item['id']]['totalstock'] = $result[$item['id']]['totalstock'] + $result[$item['id']]['variants'][$last_id]['stock'];
+    }
+    // End join
+
+    return $result;
+}

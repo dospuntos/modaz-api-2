@@ -202,32 +202,9 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
                 $productsArray[] = $product->returnProductAsArray();
             }
 
-            // Join items
-            $result = array();
-            foreach ($productsArray as $i => $item) {
-                $mainProduct = array_slice($item, 0, 19);
-                $variant = array_slice($item, 19);
-
-                if (!array_key_exists($item['id'], $result)) {
-                    $result[$item['id']] = array();
-                    $result[$item['id']] = $mainProduct;
-                    $result[$item['id']]['totalstock'] = 0;
-                }
-                // Add variants
-                $result[$item['id']]['variants'][] = $variant;
-
-                // Update totalstock-count
-                end($result[$item['id']]['variants']);
-                $last_id = key($result[$item['id']]['variants']);
-                $result[$item['id']]['totalstock'] = $result[$item['id']]['totalstock'] + $result[$item['id']]['variants'][$last_id]['stock'];
-                //$result[$item['id']]['totalstock'] += $result[$item['id']]['variants'][$last_id]['stock'];
-            }
-            // End join
-
             $returnData = array();
             $returnData['rows_returned'] = $rowCount;
-            //$returnData['products'] = $productsArray;
-            $returnData['products'] = $result;
+            $returnData['products'] = joinProductsById($productsArray);
             sendResponse(200, true, null, true, $returnData);
             exit;
         } catch (TaskException $ex) {
