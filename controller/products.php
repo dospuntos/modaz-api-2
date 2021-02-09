@@ -16,6 +16,8 @@ try {
 // NO auth script - open to public
 // Script removed
 // End auth script
+// Check authentication to return some additional data in query
+$userId = simpleCheckAuthStatusAndReturnUserID($writeDB);
 
 if (array_key_exists("productid", $_GET)) { // Return product by ID
 
@@ -25,9 +27,10 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
         sendResponse(400, false, "Product ID cannot be blank or must be numeric");
     }
 
-    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') { // Get single product by ID
         try {
             $query = $readDB->prepare("SELECT id, name, description, images, price, zinprice, price_discount FROM $readDB->tblproducts WHERE id = :productid");
+
             $query->bindParam(':productid', $productid, PDO::PARAM_INT);
             $query->execute();
 
@@ -160,21 +163,71 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
 
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         try {
-            $query = $readDB->prepare("SELECT id, name, description, images, price, zinprice, price_discount from $readDB->tblproducts");
+            //$query = $readDB->prepare("SELECT id, name, description, images, price, zinprice, price_discount from $readDB->tblproducts");
+            $query = $readDB->prepare("SELECT p.id, p.name, p.state, p.description, p.images, p.category, p.featured, p.orderdate, p.release_date, p.season, p.wholesaleprice, p.msrp, p.price, p.zinprice, p.price_discount, p.weight, p.composition, p.manufacturer, p.country, v.id AS vid, v.product_id, v.upc, v.size, v.color, v.stock FROM $readDB->tblproducts p, $readDB->tblproductvariants v WHERE p.id = v.product_id ORDER BY p.name ASC LIMIT 10");
             $query->execute();
 
             $productsArray = array();
 
             $rowCount = $query->rowCount();
-
             while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
-                $product = new Product($row['id'], $row['name'], $row['description'], $row['images'], $row['price'], $row['zinprice'], $row['price_discount']);
+                // TODO: send full array to Product and check values in constructor
+                $product = new Product(
+                    $userId,
+                    $row['id'],
+                    $row['name'],
+                    $row['state'],
+                    $row['description'],
+                    $row['images'],
+                    $row['category'],
+                    $row['featured'],
+                    $row['orderdate'],
+                    $row['release_date'],
+                    $row['season'],
+                    $row['wholesaleprice'],
+                    $row['msrp'],
+                    $row['price'],
+                    $row['zinprice'],
+                    $row['price_discount'],
+                    $row['weight'],
+                    $row['composition'],
+                    $row['manufacturer'],
+                    $row['country'],
+                    $row['vid'],
+                    $row['upc'],
+                    $row['size'],
+                    $row['color'],
+                    $row['stock']
+                );
                 $productsArray[] = $product->returnProductAsArray();
             }
 
+            // Join items
+            $result = array();
+            foreach ($productsArray as $i => $item) {
+                $mainProduct = array_slice($item, 0, 19);
+                $variant = array_slice($item, 19);
+
+                if (!array_key_exists($item['id'], $result)) {
+                    $result[$item['id']] = array();
+                    $result[$item['id']] = $mainProduct;
+                    $result[$item['id']]['totalstock'] = 0;
+                }
+                // Add variants
+                $result[$item['id']]['variants'][] = $variant;
+
+                // Update totalstock-count
+                end($result[$item['id']]['variants']);
+                $last_id = key($result[$item['id']]['variants']);
+                $result[$item['id']]['totalstock'] = $result[$item['id']]['totalstock'] + $result[$item['id']]['variants'][$last_id]['stock'];
+                //$result[$item['id']]['totalstock'] += $result[$item['id']]['variants'][$last_id]['stock'];
+            }
+            // End join
+
             $returnData = array();
             $returnData['rows_returned'] = $rowCount;
-            $returnData['products'] = $productsArray;
+            //$returnData['products'] = $productsArray;
+            $returnData['products'] = $result;
             sendResponse(200, true, null, true, $returnData);
             exit;
         } catch (TaskException $ex) {

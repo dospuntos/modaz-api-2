@@ -80,3 +80,56 @@ function checkAuthStatusAndReturnUserID($writeDB)
     }
     // End auth script
 }
+function simpleCheckAuthStatusAndReturnUserID($writeDB)
+{
+    // BEGIN AUTH SCRIPT
+    // Authenticate user with access token
+    // Check to see if access token is provided in the HTTP Authorization header and that the value is longer than 0 chars
+
+    if (!isset($_SERVER['HTTP_AUTHORIZATION']) || strlen($_SERVER['HTTP_AUTHORIZATION']) < 1) {
+        // Not authorized
+        return 0;
+    }
+
+    $accesstoken = $_SERVER['HTTP_AUTHORIZATION'];
+
+    try {
+        $query = $writeDB->prepare("SELECT userid, accesstokenexpiry, useractive, loginattempts FROM $writeDB->tblsessions, $writeDB->tblusers WHERE $writeDB->tblsessions.userid = $writeDB->tblusers.id AND accesstoken = :accesstoken");
+        $query->bindParam(':accesstoken', $accesstoken, PDO::PARAM_STR);
+        $query->execute();
+
+        $rowCount = $query->rowCount();
+
+        if ($rowCount === 0) {
+            //sendResponse(401, false, "Invalid Access Token");
+            return 0;
+        }
+
+        $row = $query->fetch(PDO::FETCH_ASSOC);
+
+        $returned_userid = $row['userid'];
+        $returned_accesstokenexpiry = $row['accesstokenexpiry'];
+        $returned_useractive = $row['useractive'];
+        $returned_loginattempts = $row['loginattempts'];
+
+        if ($returned_useractive !== "Y") {
+            //sendResponse(401, false, "User account not active");
+            return 0;
+        }
+
+        if ($returned_loginattempts >= 3) {
+            //sendResponse(401, false, "User account is currently locked out");
+            return 0;
+        }
+
+        if (strtotime($returned_accesstokenexpiry) < (time() - 3600)) {
+            //sendResponse(401, false, "Access token expired");
+            return 0;
+        }
+
+        return $returned_userid;
+    } catch (PDOException $ex) {
+        sendResponse(500, false, "There was an issue authenticating - please try again");
+    }
+    // End auth script
+}
