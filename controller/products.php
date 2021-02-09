@@ -164,7 +164,7 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         try {
             //$query = $readDB->prepare("SELECT id, name, description, images, price, zinprice, price_discount from $readDB->tblproducts");
-            $query = $readDB->prepare("SELECT p.id, p.name, p.state, p.description, p.images, p.category, p.featured, p.orderdate, p.release_date, p.season, p.wholesaleprice, p.msrp, p.price, p.zinprice, p.price_discount, p.weight, p.composition, p.manufacturer, p.country, v.id AS vid, v.product_id, v.upc, v.size, v.color, v.stock FROM $readDB->tblproducts p, $readDB->tblproductvariants v WHERE p.id = v.product_id ORDER BY p.name ASC LIMIT 10");
+            $query = $readDB->prepare("SELECT p.id, p.name, p.state, p.description, p.images, p.category, p.featured, p.orderdate, p.release_date, p.season, p.wholesaleprice, p.msrp, p.price, p.zinprice, p.price_discount, p.weight, p.composition, p.manufacturer, p.country, v.id AS vid, v.product_id, v.upc, v.size, v.color, v.stock FROM $readDB->tblproducts p, $readDB->tblproductvariants v WHERE p.id = v.product_id ORDER BY p.name ASC");
             $query->execute();
 
             $productsArray = array();
