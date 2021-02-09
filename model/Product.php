@@ -238,7 +238,11 @@ class Product
             throw new ProductException("Product description error ");
         }
 
-        $this->_description = $description;
+        if ($description === null) {
+            $this->_description = "";
+        } else {
+            $this->_description = $description;
+        }
     }
 
     public function setImages($images)
@@ -290,10 +294,12 @@ class Product
     public function setMsrp($msrp, $userId = 0)
     {
         if (($msrp !== null) && (!is_numeric($msrp) || $msrp < 0 || $msrp > 9223372036854775807 || $this->_msrp !== null)) {
-            throw new ProductException("MSRP price error");
+            $this->_msrp = 0;
+            //throw new ProductException("MSRP price error");
+        } else {
+            // Set MSRP to 0 if not authorized
+            $this->_msrp = $userId ? $msrp : 0;
         }
-        // Set MSRP to 0 if not authorized
-        $this->_msrp = $userId ? $msrp : 0;
     }
 
     public function setPrice($price)
