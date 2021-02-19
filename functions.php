@@ -112,18 +112,8 @@ function simpleCheckAuthStatusAndReturnUserID($writeDB)
         $returned_useractive = $row['useractive'];
         $returned_loginattempts = $row['loginattempts'];
 
-        if ($returned_useractive !== "Y") {
+        if ($returned_useractive !== "Y" || $returned_loginattempts >= 3 || strtotime($returned_accesstokenexpiry) < (time() - 3600)) {
             //sendResponse(401, false, "User account not active");
-            return 0;
-        }
-
-        if ($returned_loginattempts >= 3) {
-            //sendResponse(401, false, "User account is currently locked out");
-            return 0;
-        }
-
-        if (strtotime($returned_accesstokenexpiry) < (time() - 3600)) {
-            //sendResponse(401, false, "Access token expired");
             return 0;
         }
 
@@ -157,5 +147,5 @@ function joinProductsById($productsArray)
     }
     // End join
 
-    return $result;
+    return array_values($result);
 }

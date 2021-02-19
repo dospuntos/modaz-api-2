@@ -248,10 +248,10 @@ class Product
     public function setImages($images)
     {
         if (!$jsonData = json_decode($images)) {
-            $this->_images = json_encode((object)["image" => "default.jpg", "color" => "bold black"]);
+            $this->_images = (object)["image" => "default.jpg", "color" => "bold black"];
             //throw new ProductException("Not a valid JSON format for images - " . $images);
         } else {
-            $this->_images = $images;
+            $this->_images = $jsonData;
         }
     }
 
@@ -298,7 +298,7 @@ class Product
             //throw new ProductException("MSRP price error");
         } else {
             // Set MSRP to 0 if not authorized
-            $this->_msrp = $userId ? $msrp : 0;
+            $this->_msrp = $userId ? (int)$msrp : 0;
         }
     }
 
