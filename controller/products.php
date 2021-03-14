@@ -29,9 +29,10 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
 
     if ($_SERVER['REQUEST_METHOD'] === 'GET') { // Get single product by ID
         try {
-            $query = $readDB->prepare("SELECT id, name, description, images, price, zinprice, price_discount FROM $readDB->tblproducts WHERE id = :productid");
+            $query = $readDB->prepare("SELECT p.id, p.name, p.state, p.description, p.images, p.category, p.featured, p.orderdate, p.release_date, p.season, p.wholesaleprice, p.msrp, p.price, p.zinprice, p.price_discount, p.weight, p.composition, p.manufacturer, p.country, v.id AS vid, v.product_id, v.upc, v.size, v.color, v.stock FROM $readDB->tblproducts p, $readDB->tblproductvariants v WHERE p.id LIKE :productid AND v.product_id LIKE :productid2");
 
             $query->bindParam(':productid', $productid, PDO::PARAM_INT);
+            $query->bindParam(':productid2', $productid, PDO::PARAM_INT);
             $query->execute();
 
             $rowCount = $query->rowCount();
@@ -41,7 +42,33 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
             }
 
             while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
-                $product = new Product($row['id'], $row['name'], $row['description'], $row['images'], $row['price'], $row['zinprice'], $row['price_discount']);
+                $product = new Product(
+                    $userId,
+                    $row['id'],
+                    $row['name'],
+                    $row['state'],
+                    $row['description'],
+                    $row['images'],
+                    $row['category'],
+                    $row['featured'],
+                    $row['orderdate'],
+                    $row['release_date'],
+                    $row['season'],
+                    $row['wholesaleprice'],
+                    $row['msrp'],
+                    $row['price'],
+                    $row['zinprice'],
+                    $row['price_discount'],
+                    $row['weight'],
+                    $row['composition'],
+                    $row['manufacturer'],
+                    $row['country'],
+                    $row['vid'],
+                    $row['upc'],
+                    $row['size'],
+                    $row['color'],
+                    $row['stock']
+                );
                 $productArray[] = $product->returnProductAsArray();
             }
 
@@ -70,8 +97,7 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
         try {
-
-            $query = $readDB->prepare("SELECT id, name, description, images, price, zinprice, price_discount FROM $readDB->tblproducts WHERE state = :published");
+            $query = $readDB->prepare("SELECT p.id, p.name, p.state, p.description, p.images, p.category, p.featured, p.orderdate, p.release_date, p.season, p.wholesaleprice, p.msrp, p.price, p.zinprice, p.price_discount, p.weight, p.composition, p.manufacturer, p.country, v.id AS vid, v.product_id, v.upc, v.size, v.color, v.stock FROM $readDB->tblproducts p, $readDB->tblproductvariants v WHERE p.id = v.product_id AND p.state =:published ORDER BY p.name ASC");
             $query->bindParam(':published', $published, PDO::PARAM_STR);
             $query->execute();
 
@@ -80,11 +106,38 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
             $productsArray = array();
 
             while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
-                $product = new Product($row['id'], $row['name'], $row['description'], $row['images'], $row['price'], $row['zinprice'], $row['price_discount']);
+                $product = new Product(
+                    $userId,
+                    $row['id'],
+                    $row['name'],
+                    $row['state'],
+                    $row['description'],
+                    $row['images'],
+                    $row['category'],
+                    $row['featured'],
+                    $row['orderdate'],
+                    $row['release_date'],
+                    $row['season'],
+                    $row['wholesaleprice'],
+                    $row['msrp'],
+                    $row['price'],
+                    $row['zinprice'],
+                    $row['price_discount'],
+                    $row['weight'],
+                    $row['composition'],
+                    $row['manufacturer'],
+                    $row['country'],
+                    $row['vid'],
+                    $row['upc'],
+                    $row['size'],
+                    $row['color'],
+                    $row['stock']
+                );
                 $productsArray[] = $product->returnProductAsArray();
             }
             $returnData['rows_returned'] = $rowCount;
-            $returnData['products'] = $productsArray;
+            //$returnData['products'] = $productsArray;
+
 
             sendResponse(200, true, null, true, $returnData);
         } catch (TaskException $ex) {
@@ -173,7 +226,7 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
             $returnData['total_pages'] = $numOfPages;
             ($page < $numOfPages ? $returnData['has_next_page'] = true : $returnData['has_next_page'] = false);
             ($page > 1 ? $returnData['has_previous_page'] = true : $returnData['has_previous_page'] = false);
-            $returnData['tasks'] = $productsArray;
+            $returnData['products'] = joinProductsById($productsArray);
 
             sendResponse(200, true, null, true, $returnData);
         } catch (TaskException $ex) {
