@@ -42,33 +42,7 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
             }
 
             while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
-                $product = new Product(
-                    $userId,
-                    $row['id'],
-                    $row['name'],
-                    $row['state'],
-                    $row['description'],
-                    $row['images'],
-                    $row['category'],
-                    $row['featured'],
-                    $row['orderdate'],
-                    $row['release_date'],
-                    $row['season'],
-                    $row['wholesaleprice'],
-                    $row['msrp'],
-                    $row['price'],
-                    $row['zinprice'],
-                    $row['price_discount'],
-                    $row['weight'],
-                    $row['composition'],
-                    $row['manufacturer'],
-                    $row['country'],
-                    $row['vid'],
-                    $row['upc'],
-                    $row['size'],
-                    $row['color'],
-                    $row['stock']
-                );
+                $product = new Product($userId, $row);
                 $productArray[] = $product->returnProductAsArray();
             }
 
@@ -107,39 +81,11 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
             $productsArray = array();
 
             while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
-                $product = new Product(
-                    $userId,
-                    $row['id'],
-                    $row['name'],
-                    $row['state'],
-                    $row['description'],
-                    $row['images'],
-                    $row['category'],
-                    $row['featured'],
-                    $row['orderdate'],
-                    $row['release_date'],
-                    $row['season'],
-                    $row['wholesaleprice'],
-                    $row['msrp'],
-                    $row['price'],
-                    $row['zinprice'],
-                    $row['price_discount'],
-                    $row['weight'],
-                    $row['composition'],
-                    $row['manufacturer'],
-                    $row['country'],
-                    $row['vid'],
-                    $row['upc'],
-                    $row['size'],
-                    $row['color'],
-                    $row['stock']
-                );
+                $product = new Product($userId, $row);
                 $productsArray[] = $product->returnProductAsArray();
             }
             $returnData['rows_returned'] = $rowCount;
             //$returnData['products'] = $productsArray;
-
-
             sendResponse(200, true, null, true, $returnData);
         } catch (TaskException $ex) {
             sendResponse(500, false, $ex->getMessage());
@@ -191,33 +137,7 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
             $productsArray = array();
 
             while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
-                $product = new Product(
-                    $userId,
-                    $row['id'],
-                    $row['name'],
-                    $row['state'],
-                    $row['description'],
-                    $row['images'],
-                    $row['category'],
-                    $row['featured'],
-                    $row['orderdate'],
-                    $row['release_date'],
-                    $row['season'],
-                    $row['wholesaleprice'],
-                    $row['msrp'],
-                    $row['price'],
-                    $row['zinprice'],
-                    $row['price_discount'],
-                    $row['weight'],
-                    $row['composition'],
-                    $row['manufacturer'],
-                    $row['country'],
-                    $row['vid'],
-                    $row['upc'],
-                    $row['size'],
-                    $row['color'],
-                    $row['stock']
-                );
+                $product = new Product($userId, $row);
                 $productsArray[] = $product->returnProductAsArray();
             }
 
@@ -254,33 +174,7 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
                 // Skip if no userId (not logged in) and product is unpublished
                 if (!$userId && !$row['state']) continue;
 
-                $product = new Product(
-                    $userId,
-                    $row['id'],
-                    $row['name'],
-                    $row['state'],
-                    $row['description'],
-                    $row['images'],
-                    $row['category'],
-                    $row['featured'],
-                    $row['orderdate'],
-                    $row['release_date'],
-                    $row['season'],
-                    $row['wholesaleprice'],
-                    $row['msrp'],
-                    $row['price'],
-                    $row['zinprice'],
-                    $row['price_discount'],
-                    $row['weight'],
-                    $row['composition'],
-                    $row['manufacturer'],
-                    $row['country'],
-                    $row['vid'],
-                    $row['upc'],
-                    $row['size'],
-                    $row['color'],
-                    $row['stock']
-                );
+                $product = new Product($userId, $row);
                 $productsArray[] = $product->returnProductAsArray();
             }
 

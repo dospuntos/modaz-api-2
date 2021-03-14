@@ -34,55 +34,32 @@ class Product
 
     public function __construct(
         $userId,
-        $id,
-        $name,
-        $state,
-        $description,
-        $images,
-        $category,
-        $featured,
-        $orderdate,
-        $release_date,
-        $season,
-        $wholesaleprice,
-        $msrp,
-        $price,
-        $zinprice,
-        $price_discount,
-        $weight,
-        $composition,
-        $manufacturer,
-        $country,
-        $vid,
-        $upc,
-        $size,
-        $color,
-        $stock
+        $row
     ) {
-        $this->setID($id);
-        $this->setName($name);
-        $this->setState($state);
-        $this->setDescription($description);
-        $this->setImages($images);
-        $this->setCategory($category);
-        $this->setFeatured($featured);
-        $this->setOrderdate($orderdate);
-        $this->setRelease_date($release_date);
-        $this->setSeason($season);
-        $this->setWholesaleprice($wholesaleprice, $userId);
-        $this->setMsrp($msrp, $userId);
-        $this->setPrice($price);
-        $this->setZinprice($zinprice);
-        $this->setPriceDiscount($price_discount);
-        $this->setWeight($weight);
-        $this->setComposition($composition);
-        $this->setManufacturer($manufacturer);
-        $this->setCountry($country);
-        $this->setVid($vid);
-        $this->setUpc($upc);
-        $this->setSize($size);
-        $this->setColor($color);
-        $this->setStock($stock);
+        $this->setID($row['id']);
+        $this->setName($row['name']);
+        $this->setState($row['state']);
+        $this->setDescription($row['description']);
+        $this->setImages($row['images']);
+        $this->setCategory($row['category']);
+        $this->setFeatured($row['featured']);
+        $this->setOrderdate($row['orderdate']);
+        $this->setRelease_date($row['release_date']);
+        $this->setSeason($row['season']);
+        $this->setWholesaleprice($row['wholesaleprice'], $userId);
+        $this->setMsrp($row['msrp'], $userId);
+        $this->setPrice($row['price']);
+        $this->setZinprice($row['zinprice']);
+        $this->setPriceDiscount($row['price_discount']);
+        $this->setWeight($row['weight']);
+        $this->setComposition($row['composition']);
+        $this->setManufacturer($row['manufacturer']);
+        $this->setCountry($row['country']);
+        $this->setVid($row['vid']);
+        $this->setUpc($row['upc']);
+        $this->setSize($row['size']);
+        $this->setColor($row['color']);
+        $this->setStock($row['stock']);
     }
 
     public function getID()
