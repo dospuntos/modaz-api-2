@@ -27,7 +27,7 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
         sendResponse(400, false, "Product ID cannot be blank or must be numeric");
     }
 
-    if ($_SERVER['REQUEST_METHOD'] === 'GET') { // Get single product by ID
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         try {
             $query = $readDB->prepare("SELECT p.id, p.name, p.state, p.description, p.images, p.category, p.featured, p.orderdate, p.release_date, p.season, p.wholesaleprice, p.msrp, p.price, p.zinprice, p.price_discount, p.weight, p.composition, p.manufacturer, p.country, v.id AS vid, v.product_id, v.upc, v.size, v.color, v.stock FROM $readDB->tblproducts p, $readDB->tblproductvariants v WHERE p.id LIKE :productid AND v.product_id LIKE :productid2");
 
@@ -73,7 +73,8 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
             }
 
             $returnData = array();
-            $returnData['rows_returned'] = $rowCount;
+            //$returnData['rows_returned'] = $rowCount; // This returns rowCount before joining variants by product name
+            $returnData['rows_returned'] = count($productArray);
             $returnData['products'] = $productArray;
 
             sendResponse(200, true, null, true, $returnData);
@@ -250,6 +251,9 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
             $rowCount = $query->rowCount();
             while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
                 // TODO: send full array to Product and check values in constructor
+                // Skip if no userId (not logged in) and product is unpublished
+                if (!$userId && !$row['state']) continue;
+
                 $product = new Product(
                     $userId,
                     $row['id'],
@@ -280,10 +284,14 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
                 $productsArray[] = $product->returnProductAsArray();
             }
 
+            $joinedProducts = joinProductsById($productsArray);
+
             $returnData = array();
-            $returnData['rows_returned'] = $rowCount;
-            $returnData['products'] = joinProductsById($productsArray);
-            sendResponse(200, true, null, true, $returnData);
+            //$returnData['rows_returned'] = $rowCount;
+
+            $returnData['rows_returned'] = count($joinedProducts);
+            $returnData['products'] = $joinedProducts;
+            sendResponse(200, true, $userId ? null : "Anonymous user", true, $returnData);
             exit;
         } catch (TaskException $ex) {
             sendResponse(500, false, $ex->getMessage());
