@@ -185,7 +185,7 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
 
             $returnData['rows_returned'] = count($joinedProducts);
             $returnData['products'] = $joinedProducts;
-            sendResponse(200, true, $userId ? null : "Anonymous user", true, $returnData);
+            sendResponse(200, true, $userId ? null : "Request by Anonymous user", true, $returnData);
             exit;
         } catch (TaskException $ex) {
             sendResponse(500, false, $ex->getMessage());
