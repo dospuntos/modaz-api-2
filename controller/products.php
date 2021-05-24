@@ -193,6 +193,39 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
             error_log("Database query error - " . $ex, 0);
             sendResponse(500, false, "Failed to get products");
         }
+    } elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE') { // DELETE PRODUCT - REMEMBER TO REMOVE VARIANTS AS WELL
+
+        try {
+            $query = $writeDB->prepare('DELETE FROM tbltasks WHERE id = :taskid AND userid = :userid');
+            $query->bindParam(':taskid', $taskid, PDO::PARAM_INT);
+            $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
+            $query->execute();
+
+            $rowCount = $query->rowCount();
+
+            if ($rowCount === 0) {
+                $response = new Response;
+                $response->setHttpStatusCode(404);
+                $response->setSuccess(false);
+                $response->addMessage("Task not found");
+                $response->send();
+                exit;
+            }
+
+            $response = new Response();
+            $response->setHttpStatusCode(200);
+            $response->setSuccess(true);
+            $response->addMessage("Task deleted");
+            $response->send();
+            exit;
+        } catch (PDOException $ex) {
+            $response = new Response();
+            $response->setHttpStatusCode(500);
+            $response->setSuccess(false);
+            $response->addMessage("Failed to delete task");
+            $response->send();
+            exit;
+        }
     } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') { // Create new product
         try {
             if (!isset($_SERVER['CONTENT_TYPE']) || $_SERVER['CONTENT_TYPE'] !== 'application/json') {
