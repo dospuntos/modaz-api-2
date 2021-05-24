@@ -38,28 +38,49 @@ if (array_key_exists("sessionid", $_GET)) {
 
     $accesstoken = $_SERVER['HTTP_AUTHORIZATION'];
 
-    if ($_SERVER['REQUEST_METHOD'] === 'DELETE') { // Log out (delete session)
+    if ($_SERVER['REQUEST_METHOD'] === 'DELETE') { // Log out (delete session) or delete all sessions in DB if sessionId = 0
+        if ($sessionid === '0') { // Delete all sessions
+            try {
 
-        try {
+                $query = $writeDB->prepare("DELETE FROM $writeDB->tblsessions");
+                $query->execute();
 
-            $query = $writeDB->prepare("DELETE FROM $writeDB->tblsessions WHERE id = :sessionid and accesstoken = :accesstoken");
-            $query->bindParam(':sessionid', $sessionid, PDO::PARAM_INT);
-            $query->bindParam(':accesstoken', $accesstoken, PDO::PARAM_STR);
-            $query->execute();
+                $rowCount = $query->rowCount();
 
-            $rowCount = $query->rowCount();
+                if ($rowCount === 0) {
+                    sendResponse(400, false, 'Failed to clear all sessions using access token provided');
+                }
 
-            if ($rowCount === 0) {
-                sendResponse(400, false, 'Failed to log out of this session using access token provided');
+                $returnData = array();
+                $returnData['sessions_cleared'] = intval($rowCount);
+
+                sendResponse(200, true, 'Cleared all sessions', false, $returnData);
+            } catch (PDOException $ex) {
+                error_log('Cannot clear sesssions - ' . $ex);
+                sendResponse(500, false, 'There was an issue clearing all sessions - please try again');
             }
+        } else { // Delete sessionid
+            try {
 
-            $returnData = array();
-            $returnData['session_id'] = intval($sessionid);
+                $query = $writeDB->prepare("DELETE FROM $writeDB->tblsessions WHERE id = :sessionid and accesstoken = :accesstoken");
+                $query->bindParam(':sessionid', $sessionid, PDO::PARAM_INT);
+                $query->bindParam(':accesstoken', $accesstoken, PDO::PARAM_STR);
+                $query->execute();
 
-            sendResponse(200, true, 'Logged out', false, $returnData);
-        } catch (PDOException $ex) {
-            error_log('Cannot log out - ' . $ex);
-            sendResponse(500, false, 'There was an issue logging out - please try again');
+                $rowCount = $query->rowCount();
+
+                if ($rowCount === 0) {
+                    sendResponse(400, false, 'Failed to log out of this session using access token provided');
+                }
+
+                $returnData = array();
+                $returnData['session_id'] = intval($sessionid);
+
+                sendResponse(200, true, 'Logged out', false, $returnData);
+            } catch (PDOException $ex) {
+                error_log('Cannot log out - ' . $ex);
+                sendResponse(500, false, 'There was an issue logging out - please try again');
+            }
         }
     } elseif ($_SERVER['REQUEST_METHOD'] === 'PATCH') { // Refresh token (get new access token if refresh token is still valid)
 
