@@ -1,0 +1,13 @@
+<?php
+// Rename to configuration.php
+class JConfig
+{
+    public $db = 'database_name';
+    public $dbprefix = 'dbprefix_';
+    public $dbtype = 'mysqli';
+    public $debug = '0';
+    public $error_reporting = 'development';
+    public $host = 'localhost';
+    public $password = 'your-database-password';
+    public $user = 'your-database-user';
+}
