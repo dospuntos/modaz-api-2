@@ -13,21 +13,19 @@ try {
     sendResponse(500, false, "Database connection error");
 }
 
-// NO auth script - open to public
-// Script removed
-// End auth script
-// Check authentication to return some additional data in query
+// NO auth script - open to public but some functions are restricted
+
+// Check authentication to return some additional data in query and allow editing
 $userId = simpleCheckAuthStatusAndReturnUserID($writeDB);
 
-if (array_key_exists("productid", $_GET)) { // Return product by ID
+if (array_key_exists("productid", $_GET)) { // GET/POST/PATCH product by ID
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') { // Return product by ID
+        $productid = $_GET['productid'];
 
-    $productid = $_GET['productid'];
+        if ($productid === '' || !is_numeric($productid)) {
+            sendResponse(400, false, "Product ID cannot be blank or must be numeric");
+        }
 
-    if ($productid === '' || !is_numeric($productid)) {
-        sendResponse(400, false, "Product ID cannot be blank or must be numeric");
-    }
-
-    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         try {
             $query = $readDB->prepare("SELECT p.id, p.name, p.state, p.description, p.images, p.category, p.featured, p.orderdate, p.release_date, p.season, p.wholesaleprice, p.msrp, p.price, p.zinprice, p.price_discount, p.weight, p.composition, p.manufacturer, p.country, v.id AS vid, v.product_id, v.upc, v.size, v.color, v.stock FROM $readDB->tblproducts p, $readDB->tblproductvariants v WHERE p.id LIKE :productid AND v.product_id LIKE :productid2 AND p.state LIKE 1");
 
@@ -58,6 +56,53 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
             error_log("Database query error - " . $ex, 0);
             sendResponse(500, false, "Failed to get Product");
         }
+    } elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE') { // DELETE PRODUCT - REMEMBER TO REMOVE VARIANTS AS WELL
+
+        if (!$userId) sendResponse(401, false, "User not authorized or not logged in.");
+
+        $productid = $_GET['productid'];
+
+        if ($productid === '' || !is_numeric($productid)) {
+            sendResponse(400, false, "Product ID cannot be blank or must be numeric");
+        }
+
+        $messages = [];
+        // Logged in user, attempt to remove item
+        try {
+            $query = $writeDB->prepare("DELETE FROM $readDB->tblproducts WHERE id = :productid");
+            $query->bindParam(':productid', $productid, PDO::PARAM_INT);
+            $query->execute();
+
+            $rowCount = $query->rowCount();
+
+            if ($rowCount === 0) sendResponse(404, false, "Product not found");
+
+            $messages[] = "Product ID " . $productid . " deleted";
+
+            /* $response = new Response();
+            $response->setHttpStatusCode(200);
+            $response->setSuccess(true);
+            $response->addMessage("Task deleted");
+            $response->send();
+            exit; */
+        } catch (PDOException $ex) {
+            sendResponse(500, false, "Failed to delete product");
+        }
+
+        // Also delete variants
+        try {
+            $query = $writeDB->prepare("DELETE FROM $readDB->tblproductvariants WHERE product_id = :productid");
+            $query->bindParam(':productid', $productid, PDO::PARAM_INT);
+            $query->execute();
+
+            $rowCount = $query->rowCount();
+
+            $messages[] = $rowCount . " variant(s) deleted";
+        } catch (PDOException $ex) {
+            sendResponse(500, false, "Failed to delete product");
+        }
+
+        sendResponse(200, true, $messages);
     } else {
         sendResponse(405, false, "Request method not allowed");
     }
@@ -170,7 +215,6 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
 
             $rowCount = $query->rowCount();
             while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
-                // TODO: send full array to Product and check values in constructor
                 // Skip if no userId (not logged in) and product is unpublished
                 if (!$userId && !$row['state']) continue;
 
@@ -193,7 +237,7 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
             error_log("Database query error - " . $ex, 0);
             sendResponse(500, false, "Failed to get products");
         }
-    } elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE') { // DELETE PRODUCT - REMEMBER TO REMOVE VARIANTS AS WELL
+    } /* elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE') { // DELETE PRODUCT - REMEMBER TO REMOVE VARIANTS AS WELL
 
         try {
             $query = $writeDB->prepare('DELETE FROM tbltasks WHERE id = :taskid AND userid = :userid');
@@ -226,7 +270,7 @@ if (array_key_exists("productid", $_GET)) { // Return product by ID
             $response->send();
             exit;
         }
-    } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') { // Create new product
+    } */ elseif ($_SERVER['REQUEST_METHOD'] === 'POST') { // Create new product
         try {
             if (!isset($_SERVER['CONTENT_TYPE']) || $_SERVER['CONTENT_TYPE'] !== 'application/json') {
                 $response = new Response();

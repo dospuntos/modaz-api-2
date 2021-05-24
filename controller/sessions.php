@@ -1,6 +1,7 @@
 <?php
 
 /*  /sessions = POST - create a session / log in
+    /sessions/0 = DELETE - clear all sessions
     /sessions/3 = DELETE - log out a user
     /sessions/3 = PATCH - refresh session */
 
