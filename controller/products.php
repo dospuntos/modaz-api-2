@@ -18,13 +18,15 @@ try {
 // Check authentication to return some additional data in query and allow editing
 $userId = simpleCheckAuthStatusAndReturnUserID($writeDB);
 
-if (array_key_exists("productid", $_GET)) { // GET/POST/PATCH product by ID
-    if ($_SERVER['REQUEST_METHOD'] === 'GET') { // Return product by ID
-        $productid = $_GET['productid'];
+if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
 
-        if ($productid === '' || !is_numeric($productid)) {
-            sendResponse(400, false, "Product ID cannot be blank or must be numeric");
-        }
+    $productid = $_GET['productid'];
+
+    if ($productid === '' || !is_numeric($productid)) {
+        sendResponse(400, false, "Product ID cannot be blank or must be numeric");
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') { // Return product by ID
 
         try {
             $query = $readDB->prepare("SELECT p.id, p.name, p.state, p.description, p.images, p.category, p.featured, p.orderdate, p.release_date, p.season, p.wholesaleprice, p.msrp, p.price, p.zinprice, p.price_discount, p.weight, p.composition, p.manufacturer, p.country, v.id AS vid, v.product_id, v.upc, v.size, v.color, v.stock FROM $readDB->tblproducts p, $readDB->tblproductvariants v WHERE p.id LIKE :productid AND v.product_id LIKE :productid2 AND p.state LIKE 1");
@@ -56,15 +58,9 @@ if (array_key_exists("productid", $_GET)) { // GET/POST/PATCH product by ID
             error_log("Database query error - " . $ex, 0);
             sendResponse(500, false, "Failed to get Product");
         }
-    } elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE') { // DELETE PRODUCT - REMEMBER TO REMOVE VARIANTS AS WELL
+    } elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE') { // DELETE PRODUCT
 
         if (!$userId) sendResponse(401, false, "User not authorized or not logged in.");
-
-        $productid = $_GET['productid'];
-
-        if ($productid === '' || !is_numeric($productid)) {
-            sendResponse(400, false, "Product ID cannot be blank or must be numeric");
-        }
 
         $messages = [];
         // Logged in user, attempt to remove item
@@ -95,6 +91,8 @@ if (array_key_exists("productid", $_GET)) { // GET/POST/PATCH product by ID
             sendResponse(500, false, "Failed to delete product");
         }
         sendResponse(200, true, $messages);
+    } elseif ($_SERVER['REQUEST_METHOD'] === 'PATCH') { // EDIT PRODUCT
+        sendResponse(200, true, "Product PATCH currently not implemented, but the request was successful for product ID " . $productid);
     } else {
         sendResponse(405, false, "Request method not allowed");
     }
