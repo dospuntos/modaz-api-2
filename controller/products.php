@@ -78,13 +78,6 @@ if (array_key_exists("productid", $_GET)) { // GET/POST/PATCH product by ID
             if ($rowCount === 0) sendResponse(404, false, "Product not found");
 
             $messages[] = "Product ID " . $productid . " deleted";
-
-            /* $response = new Response();
-            $response->setHttpStatusCode(200);
-            $response->setSuccess(true);
-            $response->addMessage("Task deleted");
-            $response->send();
-            exit; */
         } catch (PDOException $ex) {
             sendResponse(500, false, "Failed to delete product");
         }
@@ -101,7 +94,6 @@ if (array_key_exists("productid", $_GET)) { // GET/POST/PATCH product by ID
         } catch (PDOException $ex) {
             sendResponse(500, false, "Failed to delete product");
         }
-
         sendResponse(200, true, $messages);
     } else {
         sendResponse(405, false, "Request method not allowed");
