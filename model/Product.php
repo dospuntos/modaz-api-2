@@ -225,7 +225,7 @@ class Product
     public function setImages($images)
     {
         if (!$jsonData = json_decode($images)) {
-            $this->_images = (object)["image" => "default.jpg", "color" => "bold black"];
+            $this->_images = array((object)["image" => "defaultasdf.jpg", "color" => "bold black"]);
             //throw new ProductException("Not a valid JSON format for images - " . $images);
         } else {
             $this->_images = $jsonData;

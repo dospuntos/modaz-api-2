@@ -244,6 +244,16 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
             // Required: Name
             if (!isset($jsonData['name'])) sendResponse(400, false, "Name field is mandatory and must be provided");
 
+            // Check if name exists in database
+            $query = $writeDB->prepare("SELECT name FROM $readDB->tblproducts WHERE name LIKE :name");
+            $query->bindParam(':name', $jsonData['name'], PDO::PARAM_STR);
+            $query->execute();
+
+            $rowCount = $query->rowCount();
+
+            if ($rowCount !== 0) sendResponse(409, false, "Failed to create product - the product name must be unique");
+
+            // Create the main product
             $newProduct = new Product($userId, $jsonData);
 
             $state = $newProduct->getState();
