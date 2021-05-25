@@ -36,30 +36,30 @@ class Product
         $userId,
         $row
     ) {
-        $this->setID($row['id']);
+        $this->setID(isset($row['id']) ? $row['id'] : null);
         $this->setName($row['name']);
-        $this->setState($row['state']);
-        $this->setDescription($row['description']);
-        $this->setImages($row['images']);
-        $this->setCategory($row['category']);
-        $this->setFeatured($row['featured']);
-        $this->setOrderdate($row['orderdate']);
-        $this->setRelease_date($row['release_date']);
-        $this->setSeason($row['season']);
-        $this->setWholesaleprice($row['wholesaleprice'], $userId);
-        $this->setMsrp($row['msrp'], $userId);
-        $this->setPrice($row['price']);
-        $this->setZinprice($row['zinprice']);
-        $this->setPriceDiscount($row['price_discount']);
-        $this->setWeight($row['weight']);
-        $this->setComposition($row['composition']);
-        $this->setManufacturer($row['manufacturer']);
-        $this->setCountry($row['country']);
-        $this->setVid($row['vid']);
-        $this->setUpc($row['upc']);
-        $this->setSize($row['size']);
-        $this->setColor($row['color']);
-        $this->setStock($row['stock']);
+        $this->setState(isset($row['state']) ? $row['state'] : 1);
+        $this->setDescription(isset($row['description']) ? $row['description'] : null);
+        $this->setImages(isset($row['images']) ? $row['images'] : null);
+        $this->setCategory(isset($row['category']) ? $row['category'] : 8);
+        $this->setFeatured(isset($row['featured']) ? $row['featured'] : 0);
+        $this->setOrderdate(isset($row['orderdate']) ? $row['orderdate'] : "0000-00-00");
+        $this->setRelease_date(isset($row['release_date']) ? $row['release_date'] : "0000-00-00");
+        $this->setSeason(isset($row['season']) ? $row['season'] : "");
+        $this->setWholesaleprice(isset($row['wholesaleprice']) ? $row['wholesaleprice'] : "0", $userId);
+        $this->setMsrp(isset($row['msrp']) ? $row['msrp'] : "0", $userId);
+        $this->setPrice(isset($row['price']) ? $row['price'] : "0");
+        $this->setZinprice(isset($row['zinprice']) ? $row['zinprice'] : "0");
+        $this->setPriceDiscount(isset($row['price_discount']) ? $row['price_discount'] : "0");
+        $this->setWeight(isset($row['weight']) ? $row['weight'] : "0");
+        $this->setComposition(isset($row['composition']) ? $row['composition'] : "");
+        $this->setManufacturer(isset($row['manufacturer']) ? $row['manufacturer'] : "");
+        $this->setCountry(isset($row['country']) ? $row['country'] : "");
+        $this->setVid(isset($row['vid']) ? $row['vid'] : null);
+        $this->setUpc(isset($row['upc']) ? $row['upc'] : 0);
+        $this->setSize(isset($row['size']) ? $row['size'] : 0);
+        $this->setColor(isset($row['color']) ? $row['color'] : 0);
+        $this->setStock(isset($row['stock']) ? $row['stock'] : 1);
     }
 
     public function getID()
@@ -184,7 +184,7 @@ class Product
 
     public function setID($id)
     {
-        if (($id !== null) && (!is_numeric($id) || $id <= 0 || $id > 9223372036854775807 || $this->_id !== null)) {
+        if (($id !== null) && (!is_numeric($id) || $id < 0 || $id > 9223372036854775807 || $this->_id !== null)) {
             throw new ProductException("Product ID error");
         }
 

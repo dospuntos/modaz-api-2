@@ -194,7 +194,7 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
     } else {
         sendResponse(404, false, "Request method not allowed");
     }
-} elseif (empty($_GET)) { // Get all products
+} elseif (empty($_GET)) { // Get all products or create product
 
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         try {
@@ -227,149 +227,121 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
             error_log("Database query error - " . $ex, 0);
             sendResponse(500, false, "Failed to get products");
         }
-    } /* elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE') { // DELETE PRODUCT - REMEMBER TO REMOVE VARIANTS AS WELL
+    } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') { // Create new product
 
-        try {
-            $query = $writeDB->prepare('DELETE FROM tbltasks WHERE id = :taskid AND userid = :userid');
-            $query->bindParam(':taskid', $taskid, PDO::PARAM_INT);
-            $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
-            $query->execute();
+        if (!$userId) sendResponse(401, false, "User not authorized or not logged in.");
 
-            $rowCount = $query->rowCount();
-
-            if ($rowCount === 0) {
-                $response = new Response;
-                $response->setHttpStatusCode(404);
-                $response->setSuccess(false);
-                $response->addMessage("Task not found");
-                $response->send();
-                exit;
-            }
-
-            $response = new Response();
-            $response->setHttpStatusCode(200);
-            $response->setSuccess(true);
-            $response->addMessage("Task deleted");
-            $response->send();
-            exit;
-        } catch (PDOException $ex) {
-            $response = new Response();
-            $response->setHttpStatusCode(500);
-            $response->setSuccess(false);
-            $response->addMessage("Failed to delete task");
-            $response->send();
-            exit;
-        }
-    } */ elseif ($_SERVER['REQUEST_METHOD'] === 'POST') { // Create new product
         try {
             if (!isset($_SERVER['CONTENT_TYPE']) || $_SERVER['CONTENT_TYPE'] !== 'application/json') {
-                $response = new Response();
-                $response->setHttpStatusCode(400);
-                $response->setSuccess(false);
-                $response->addMessage("Content type header is not set to JSON");
-                $response->send();
-                exit;
+                sendResponse(400, false, "Content type header is not set to JSON");
             }
 
             $rawPOSTData = file_get_contents('php://input');
 
-            if (!$jsonData = json_decode($rawPOSTData)) {
-                $response = new Response();
-                $response->setHttpStatusCode(400);
-                $response->setSuccess(false);
-                $response->addMessage("Request body is not valid JSON");
-                $response->send();
-                exit;
+            if (!$jsonData = json_decode($rawPOSTData, true)) {
+                sendResponse(400, false, "Request body is not valid JSON");
             }
+            // Required: Name
+            if (!isset($jsonData['name'])) sendResponse(400, false, "Name field is mandatory and must be provided");
 
-            if (!isset($jsonData->title) || !isset($jsonData->completed)) {
-                $response = new Response();
-                $response->setHttpStatusCode(400);
-                $response->setSuccess(false);
-                (!isset($jsonData->title) ? $response->addMessage("Title field is mandatory and must be provided") : false);
-                (!isset($jsonData->completed) ? $response->addMessage("Completed field is mandatory and must be provided") : false);
-                $response->send();
-                exit;
-            }
+            $newProduct = new Product($userId, $jsonData);
 
-            $newTask = new Task(null, $jsonData->title, (isset($jsonData->description) ? $jsonData->description : null), (isset($jsonData->deadline) ? $jsonData->deadline : null), $jsonData->completed);
+            $state = $newProduct->getState();
+            $release_date = $newProduct->getRelease_date();
+            $orderdate = $newProduct->getOrderdate();
+            $season = $newProduct->getSeason();
+            $featured = $newProduct->getFeatured();
+            $name = $newProduct->getName();
+            $images = json_encode($newProduct->getImages());
+            $category = $newProduct->getCategory();
+            $description = $newProduct->getDescription();
+            $wholesaleprice = $newProduct->getWholesaleprice();
+            $msrp = $newProduct->getMsrp();
+            $price = $newProduct->getPrice();
+            $zinprice = $newProduct->getZinprice();
+            $price_discount = $newProduct->getPriceDiscount();
+            $weight = $newProduct->getWeight();
+            $composition = $newProduct->getComposition();
+            $manufacturer = $newProduct->getManufacturer();
+            $country = $newProduct->getCountry();
 
-            $title = $newTask->getTitle();
-            $description = $newTask->getDescription();
-            $deadline = $newTask->getDeadline();
-            $completed = $newTask->getCompleted();
-
-            $query = $writeDB->prepare('INSERT INTO tbltasks (title, description, deadline, completed, userid) VALUES (:title, :description, STR_TO_DATE(:deadline, \'%d/%m/%Y %H:%i\'), :completed, :userid)');
-            $query->bindParam(':title', $title, PDO::PARAM_STR);
+            $query = $writeDB->prepare("INSERT INTO $readDB->tblproducts (state, release_date, orderdate, season, featured, name, images, category, description, wholesaleprice, msrp, price, zinprice, price_discount, weight, composition, manufacturer, country) VALUES (:state, :release_date, :orderdate, :season, :featured, :name, :images, :category, :description, :wholesaleprice, :msrp, :price, :zinprice, :price_discount, :weight, :composition, :manufacturer, :country)");
+            $query->bindParam(':state', $state, PDO::PARAM_INT);
+            $query->bindParam(':release_date', $release_date, PDO::PARAM_STR);
+            $query->bindParam(':orderdate', $orderdate, PDO::PARAM_STR);
+            $query->bindParam(':season', $season, PDO::PARAM_STR);
+            $query->bindParam(':featured', $featured, PDO::PARAM_STR);
+            $query->bindParam(':name', $name, PDO::PARAM_STR);
+            $query->bindParam(':images', $images, PDO::PARAM_STR);
+            $query->bindParam(':category', $category, PDO::PARAM_STR);
             $query->bindParam(':description', $description, PDO::PARAM_STR);
-            $query->bindParam(':deadline', $deadline, PDO::PARAM_STR);
-            $query->bindParam(':completed', $completed, PDO::PARAM_STR);
-            $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
+            $query->bindParam(':wholesaleprice', $wholesaleprice, PDO::PARAM_STR);
+            $query->bindParam(':msrp', $msrp, PDO::PARAM_INT);
+            $query->bindParam(':price', $price, PDO::PARAM_INT);
+            $query->bindParam(':zinprice', $zinprice, PDO::PARAM_INT);
+            $query->bindParam(':price_discount', $price_discount, PDO::PARAM_INT);
+            $query->bindParam(':weight', $weight, PDO::PARAM_STR);
+            $query->bindParam(':composition', $composition, PDO::PARAM_STR);
+            $query->bindParam(':manufacturer', $manufacturer, PDO::PARAM_STR);
+            $query->bindParam(':country', $country, PDO::PARAM_STR);
             $query->execute();
 
             $rowCount = $query->rowCount();
 
-            if ($rowCount === 0) {
-                $response = new Response();
-                $response->setHttpStatusCode(500);
-                $response->setSuccess(false);
-                $response->addMessage("Failed to create task");
-                $response->send();
-                exit;
-            }
+            if ($rowCount === 0) sendResponse(500, false, "Failed to create main product");
 
-            $lastTaskID = $writeDB->lastInsertId();
+            $lastProductID = $writeDB->lastInsertId();
 
-            $query = $writeDB->prepare('SELECT id, title, description, DATE_FORMAT(deadline, "%d/%m/%Y %H:%i") as deadline, completed FROM tbltasks WHERE id = :taskid AND userid = :userid');
-            $query->bindParam(':taskid', $lastTaskID, PDO::PARAM_INT);
-            $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
+            // Create a product variant
+            $size = $newProduct->getSize();
+            $color = $newProduct->getColor();
+            $stock = $newProduct->getStock();
+            $upc = $newProduct->getUpc();
+            $item = "-";
+            $transport_id = 0;
+
+            $query = $writeDB->prepare("INSERT INTO $readDB->tblproductvariants (product_id, size, color, stock, upc, item, transport_id) VALUES (:product_id, :size, :color, :stock, :upc, :item, :transport_id)");
+            $query->bindParam(':product_id', $lastProductID, PDO::PARAM_INT);
+            $query->bindParam(':size', $size, PDO::PARAM_STR);
+            $query->bindParam(':color', $color, PDO::PARAM_STR);
+            $query->bindParam(':stock', $stock, PDO::PARAM_INT);
+            $query->bindParam(':upc', $upc, PDO::PARAM_STR);
+            $query->bindParam(':item', $item, PDO::PARAM_STR);
+            $query->bindParam(':transport_id', $transport_id, PDO::PARAM_INT);
             $query->execute();
 
             $rowCount = $query->rowCount();
 
-            if ($rowCount === 0) {
-                $response = new Response();
-                $response->setHttpStatusCode(500);
-                $response->setSuccess(false);
-                $response->addMessage("Failed to retrieve task after creation");
-                $response->send();
-                exit;
-            }
+            if ($rowCount === 0) sendResponse(500, false, "Failed to create product variant");
 
-            $taskArray = array();
+            $query = $readDB->prepare("SELECT p.id, p.name, p.state, p.description, p.images, p.category, p.featured, p.orderdate, p.release_date, p.season, p.wholesaleprice, p.msrp, p.price, p.zinprice, p.price_discount, p.weight, p.composition, p.manufacturer, p.country, v.id AS vid, v.product_id, v.upc, v.size, v.color, v.stock FROM $readDB->tblproducts p, $readDB->tblproductvariants v WHERE p.id LIKE :productid AND v.product_id LIKE :productid2");
+            $query->bindParam(':productid', $lastProductID, PDO::PARAM_INT);
+            $query->bindParam(':productid2', $lastProductID, PDO::PARAM_INT);
+            $query->execute();
+
+            $rowCount = $query->rowCount();
+
+            if ($rowCount === 0) sendResponse(500, false, "Failed to retrieve product after creation");
+
+            $productArray = array();
 
             while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
-
-                $task = new Task($row['id'], $row['title'], $row['description'], $row['deadline'], $row['completed']);
-                $taskArray[] = $task->returnTaskAsArray();
+                $product = new Product($userId, $row);
+                $productArray[] = $product->returnProductAsArray();
             }
 
-            $returnData = array();
-            $returnData['rows_returned'] = $rowCount;
-            $returnData['tasks'] = $taskArray;
+            $joinedProducts = joinProductsById($productArray);
 
-            $response = new Response();
-            $response->setHttpStatusCode(201);
-            $response->setSuccess(true);
-            $response->addMessage("Task created");
-            $response->setData($returnData);
-            $response->send();
-            exit;
+            $returnData = array();
+            $returnData['rows_returned'] = count($joinedProducts);
+            $returnData['products'] = $joinedProducts;
+
+            sendResponse(201, true, "Product and variant created", false, $returnData);
         } catch (TaskException $ex) {
             error_log("Database query error - " . $ex, 0);
-            $response = new Response();
-            $response->setHttpStatusCode(400);
-            $response->setSuccess(false);
-            $response->addMessage($ex->getMessage());
-            $response->send();
-            exit;
+            sendResponse(400, false, $ex->getMessage());
         } catch (PDOException $ex) {
-            $response = new Response();
-            $response->setHttpStatusCode(500);
-            $response->setSuccess(false);
-            $response->addMessage("Failed to insert task into database - check submitted data for errors");
-            $response->send();
-            exit;
+            sendResponse(500, false, "Failed to insert product into database - check submitted data for errors");
         }
     } else {
         sendResponse(405, false, "Request method not allowed");
