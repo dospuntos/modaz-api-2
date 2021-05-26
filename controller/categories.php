@@ -132,107 +132,48 @@ if (array_key_exists("category", $_GET)) { // GET/PATCH category by ID
             if (!$jsonData = json_decode($rawPOSTData, true)) sendResponse(400, false, "Request body is not valid JSON");
 
             // Required: Title
-            if (!isset($jsonData['title'])) sendResponse(400, false, "Name field is mandatory and must be provided");
+            if (!isset($jsonData['title'])) sendResponse(400, false, "Title field is mandatory and must be provided");
 
-            // Create the main product
-            $newProduct = new Product($userId, $jsonData);
+            // Create the category
+            $title = $jsonData['title'];
 
-            $state = $newProduct->getState();
-            $release_date = $newProduct->getRelease_date();
-            $orderdate = $newProduct->getOrderdate();
-            $season = $newProduct->getSeason();
-            $featured = $newProduct->getFeatured();
-            $name = $newProduct->getName();
-            $images = json_encode($newProduct->getImages());
-            $category = $newProduct->getCategory();
-            $description = $newProduct->getDescription();
-            $wholesaleprice = $newProduct->getWholesaleprice();
-            $msrp = $newProduct->getMsrp();
-            $price = $newProduct->getPrice();
-            $zinprice = $newProduct->getZinprice();
-            $price_discount = $newProduct->getPriceDiscount();
-            $weight = $newProduct->getWeight();
-            $composition = $newProduct->getComposition();
-            $manufacturer = $newProduct->getManufacturer();
-            $country = $newProduct->getCountry();
-
-            $query = $writeDB->prepare("INSERT INTO $readDB->tblproducts (state, release_date, orderdate, season, featured, name, images, category, description, wholesaleprice, msrp, price, zinprice, price_discount, weight, composition, manufacturer, country) VALUES (:state, :release_date, :orderdate, :season, :featured, :name, :images, :category, :description, :wholesaleprice, :msrp, :price, :zinprice, :price_discount, :weight, :composition, :manufacturer, :country)");
+            $query = $writeDB->prepare("INSERT INTO $readDB->tblcategories (title, path) VALUES (:title, :path)");
             $query->bindParam(':state', $state, PDO::PARAM_INT);
             $query->bindParam(':release_date', $release_date, PDO::PARAM_STR);
-            $query->bindParam(':orderdate', $orderdate, PDO::PARAM_STR);
-            $query->bindParam(':season', $season, PDO::PARAM_STR);
-            $query->bindParam(':featured', $featured, PDO::PARAM_STR);
-            $query->bindParam(':name', $name, PDO::PARAM_STR);
-            $query->bindParam(':images', $images, PDO::PARAM_STR);
-            $query->bindParam(':category', $category, PDO::PARAM_STR);
-            $query->bindParam(':description', $description, PDO::PARAM_STR);
-            $query->bindParam(':wholesaleprice', $wholesaleprice, PDO::PARAM_STR);
-            $query->bindParam(':msrp', $msrp, PDO::PARAM_INT);
-            $query->bindParam(':price', $price, PDO::PARAM_INT);
-            $query->bindParam(':zinprice', $zinprice, PDO::PARAM_INT);
-            $query->bindParam(':price_discount', $price_discount, PDO::PARAM_INT);
-            $query->bindParam(':weight', $weight, PDO::PARAM_STR);
-            $query->bindParam(':composition', $composition, PDO::PARAM_STR);
-            $query->bindParam(':manufacturer', $manufacturer, PDO::PARAM_STR);
-            $query->bindParam(':country', $country, PDO::PARAM_STR);
+
             $query->execute();
 
             $rowCount = $query->rowCount();
 
-            if ($rowCount === 0) sendResponse(500, false, "Failed to create main product");
+            if ($rowCount === 0) sendResponse(500, false, "Failed to create category");
 
             $lastProductID = $writeDB->lastInsertId();
 
-            // Create a product variant
-            $size = $newProduct->getSize();
-            $color = $newProduct->getColor();
-            $stock = $newProduct->getStock();
-            $upc = $newProduct->getUpc();
-            $item = "-";
-            $transport_id = 0;
-
-            $query = $writeDB->prepare("INSERT INTO $readDB->tblproductvariants (product_id, size, color, stock, upc, item, transport_id) VALUES (:product_id, :size, :color, :stock, :upc, :item, :transport_id)");
-            $query->bindParam(':product_id', $lastProductID, PDO::PARAM_INT);
-            $query->bindParam(':size', $size, PDO::PARAM_STR);
-            $query->bindParam(':color', $color, PDO::PARAM_STR);
-            $query->bindParam(':stock', $stock, PDO::PARAM_INT);
-            $query->bindParam(':upc', $upc, PDO::PARAM_STR);
-            $query->bindParam(':item', $item, PDO::PARAM_STR);
-            $query->bindParam(':transport_id', $transport_id, PDO::PARAM_INT);
+            $query = $readDB->prepare("SELECT id, title, path FROM $readDB->tblcategories WHERE id LIKE :categoryid");
+            $query->bindParam(':categoryid', $lastProductID, PDO::PARAM_INT);
             $query->execute();
 
             $rowCount = $query->rowCount();
 
-            if ($rowCount === 0) sendResponse(500, false, "Failed to create product variant");
+            if ($rowCount === 0) sendResponse(500, false, "Failed to retrieve category after creation");
 
-            $query = $readDB->prepare("SELECT p.id, p.name, p.state, p.description, p.images, p.category, p.featured, p.orderdate, p.release_date, p.season, p.wholesaleprice, p.msrp, p.price, p.zinprice, p.price_discount, p.weight, p.composition, p.manufacturer, p.country, v.id AS vid, v.product_id, v.upc, v.size, v.color, v.stock FROM $readDB->tblproducts p, $readDB->tblproductvariants v WHERE p.id LIKE :productid AND v.product_id LIKE :productid2");
-            $query->bindParam(':productid', $lastProductID, PDO::PARAM_INT);
-            $query->bindParam(':productid2', $lastProductID, PDO::PARAM_INT);
-            $query->execute();
-
-            $rowCount = $query->rowCount();
-
-            if ($rowCount === 0) sendResponse(500, false, "Failed to retrieve product after creation");
-
-            $productArray = array();
+            $categoryArray = array();
 
             while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
-                $product = new Product($userId, $row);
-                $productArray[] = $product->returnProductAsArray();
+                $category = new Category($row['id'], $row['title'], $row['path']);
+                $categoryArray[] = $category->returnCategoryAsArray();
             }
 
-            $joinedProducts = joinProductsById($productArray);
-
             $returnData = array();
-            $returnData['rows_returned'] = count($joinedProducts);
-            $returnData['products'] = $joinedProducts;
+            $returnData['rows_returned'] = $rowCount;
+            $returnData['categories'] = $categoryArray;
 
-            sendResponse(201, true, "Product and variant created", false, $returnData);
+            sendResponse(201, true, "Category created", false, $returnData);
         } catch (TaskException $ex) {
             error_log("Database query error - " . $ex, 0);
             sendResponse(400, false, $ex->getMessage());
         } catch (PDOException $ex) {
-            sendResponse(500, false, "Failed to insert product into database - check submitted data for errors");
+            sendResponse(500, false, "Failed to insert category into database - check submitted data for errors");
         }
     } else {
         sendResponse(405, false, "Request method not allowed");
