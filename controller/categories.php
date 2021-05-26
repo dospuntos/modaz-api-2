@@ -18,13 +18,11 @@ try {
 // Check authentication to return some additional data in query and allow editing
 $userId = simpleCheckAuthStatusAndReturnUserID($writeDB);
 
-if (array_key_exists("category", $_GET)) { // GET/PATCH category by ID
+if (array_key_exists("categoryid", $_GET)) { // GET/PATCH category by ID
 
-    $categoryid = $_GET['category'];
+    $categoryid = $_GET['categoryid'];
 
-    if ($categoryid === '' || !is_numeric($categoryid)) {
-        sendResponse(400, false, "Category ID cannot be blank or must be numeric");
-    }
+    if ($categoryid === '' || !is_numeric($categoryid)) sendResponse(400, false, "Category ID cannot be blank or must be numeric");
 
     if ($_SERVER['REQUEST_METHOD'] === 'GET') { // Return category by ID
 
@@ -56,41 +54,29 @@ if (array_key_exists("category", $_GET)) { // GET/PATCH category by ID
             error_log("Database query error - " . $ex, 0);
             sendResponse(500, false, "Failed to get Category");
         }
-    } elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE') { // DELETE PRODUCT
+    } elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE') { // DELETE CATEGORY
 
         if (!$userId) sendResponse(401, false, "User not authorized or not logged in.");
 
         $messages = [];
         // Logged in user, attempt to remove item
         try {
-            $query = $writeDB->prepare("DELETE FROM $readDB->tblproducts WHERE id = :productid");
-            $query->bindParam(':productid', $productid, PDO::PARAM_INT);
+            $query = $writeDB->prepare("DELETE FROM $readDB->tblcategories WHERE id = :categoryid");
+            $query->bindParam(':categoryid', $categoryid, PDO::PARAM_INT);
             $query->execute();
 
             $rowCount = $query->rowCount();
 
-            if ($rowCount === 0) sendResponse(404, false, "Product not found");
+            if ($rowCount === 0) sendResponse(404, false, "Category not found");
 
-            $messages[] = "Product ID " . $productid . " deleted";
+            $messages[] = "Category ID " . $categoryid . " deleted";
         } catch (PDOException $ex) {
-            sendResponse(500, false, "Failed to delete product");
+            sendResponse(500, false, "Failed to delete category");
         }
 
-        // Also delete variants
-        try {
-            $query = $writeDB->prepare("DELETE FROM $readDB->tblproductvariants WHERE product_id = :productid");
-            $query->bindParam(':productid', $productid, PDO::PARAM_INT);
-            $query->execute();
-
-            $rowCount = $query->rowCount();
-
-            $messages[] = $rowCount . " variant(s) deleted";
-        } catch (PDOException $ex) {
-            sendResponse(500, false, "Failed to delete product");
-        }
         sendResponse(200, true, $messages);
-    } elseif ($_SERVER['REQUEST_METHOD'] === 'PATCH') { // EDIT PRODUCT
-        sendResponse(200, true, "Product PATCH currently not implemented, but the request was successful for product ID " . $productid);
+    } elseif ($_SERVER['REQUEST_METHOD'] === 'PATCH') { // EDIT CATEGORY
+        sendResponse(200, true, "Category PATCH currently not implemented, but the request was successful for category ID " . $categoryid);
     } else {
         sendResponse(405, false, "Request method not allowed");
     }
@@ -147,10 +133,10 @@ if (array_key_exists("category", $_GET)) { // GET/PATCH category by ID
 
             if ($rowCount === 0) sendResponse(500, false, "Failed to create category");
 
-            $lastProductID = $writeDB->lastInsertId();
+            $lastCategoryID = $writeDB->lastInsertId();
 
             $query = $readDB->prepare("SELECT id, title, path FROM $readDB->tblcategories WHERE id LIKE :categoryid");
-            $query->bindParam(':categoryid', $lastProductID, PDO::PARAM_INT);
+            $query->bindParam(':categoryid', $lastCategoryID, PDO::PARAM_INT);
             $query->execute();
 
             $rowCount = $query->rowCount();
