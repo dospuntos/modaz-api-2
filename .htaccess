@@ -33,3 +33,6 @@ RewriteRule ^products/published$ controller/products.php?published=Y [L]
 RewriteRule ^products/unpublished$ controller/products.php?published=N [L]
 RewriteRule ^products/page/([0-9]+)$ controller/products.php?page=$1 [L]
 RewriteRule ^products$ controller/products.php [L]
+
+RewriteRule ^categories/([0-9]+)$ controller/categories.php?categoryid=$1 [L]
+RewriteRule ^categories$ controller/categories.php [L]

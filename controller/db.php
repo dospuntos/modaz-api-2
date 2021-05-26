@@ -28,6 +28,7 @@ class DB
             self::$writeDBConnection->tblsessions = $var_cls->dbprefix . "modaz_sessions";
             self::$writeDBConnection->tblproducts = $var_cls->dbprefix . "modaz_products_api2";
             self::$writeDBConnection->tblproductvariants = $var_cls->dbprefix . "modaz_product_variants";
+            self::$writeDBConnection->tblcategories = $var_cls->dbprefix . "categories";
         }
         return self::$writeDBConnection;
     }
@@ -45,6 +46,7 @@ class DB
             self::$readDBConnection->tblsessions = $var_cls->dbprefix . "modaz_sessions";
             self::$readDBConnection->tblproducts = $var_cls->dbprefix . "modaz_products_api2";
             self::$readDBConnection->tblproductvariants = $var_cls->dbprefix . "modaz_product_variants";
+            self::$readDBConnection->tblcategories = $var_cls->dbprefix . "categories";
         }
         return self::$readDBConnection;
     }
