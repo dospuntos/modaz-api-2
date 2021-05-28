@@ -52,7 +52,7 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
             $returnData['products'] = $productArray;
 
             sendResponse(200, true, null, true, $returnData);
-        } catch (TaskException $ex) {
+        } catch (ProductException $ex) {
             sendResponse(500, false, $ex->getMessage());
         } catch (PDOException $ex) {
             error_log("Database query error - " . $ex, 0);
@@ -122,7 +122,7 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
             $returnData['rows_returned'] = $rowCount;
             //$returnData['products'] = $productsArray;
             sendResponse(200, true, null, true, $returnData);
-        } catch (TaskException $ex) {
+        } catch (ProductException $ex) {
             sendResponse(500, false, $ex->getMessage());
         } catch (PDOException $ex) {
             error_log("Database query error - " . $ex, 0);
@@ -185,7 +185,7 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
             $returnData['products'] = joinProductsById($productsArray);
 
             sendResponse(200, true, null, true, $returnData);
-        } catch (TaskException $ex) {
+        } catch (ProductException $ex) {
             sendResponse(500, false, $ex->getMessage());
         } catch (PDOException $ex) {
             error_log("Database query error - " . $ex, 0);
@@ -221,7 +221,7 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
             $returnData['products'] = $joinedProducts;
             sendResponse(200, true, $userId ? null : "Request by Anonymous user", true, $returnData);
             exit;
-        } catch (TaskException $ex) {
+        } catch (ProductException $ex) {
             sendResponse(500, false, $ex->getMessage());
         } catch (PDOException $ex) {
             error_log("Database query error - " . $ex, 0);
@@ -347,7 +347,7 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
             $returnData['products'] = $joinedProducts;
 
             sendResponse(201, true, "Product and variant created", false, $returnData);
-        } catch (TaskException $ex) {
+        } catch (ProductException $ex) {
             error_log("Database query error - " . $ex, 0);
             sendResponse(400, false, $ex->getMessage());
         } catch (PDOException $ex) {

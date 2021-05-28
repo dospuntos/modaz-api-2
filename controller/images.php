@@ -17,17 +17,16 @@ try {
 $userId = checkAuthStatusAndReturnUserID($writeDB);
 
 if (array_key_exists("fix", $_GET)) { // FIX errors in JSON data
-    // Fix invalid JSON entries
-    sendResponse(200, true, "Method to fix image errors");
+    if ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
+        sendResponse(200, true, "Method to fix image errors");
+    } else {
+        sendResponse(405, false, "Request method not allowed");
+    }
 } elseif (empty($_GET) || array_key_exists("check", $_GET)) { // Get all images
 
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
-        if (array_key_exists("check", $_GET)) {
-            $check = true;
-        } else {
-            $check = false;
-        }
+        $check = (array_key_exists("check", $_GET)) ? true : false;
 
         try {
             $query = $readDB->prepare("SELECT id, images FROM $readDB->tblproducts");
@@ -45,7 +44,7 @@ if (array_key_exists("fix", $_GET)) { // FIX errors in JSON data
 
             $returnData['images'] = $imagesArray;
             sendResponse(200, true, $userId ? null : "Request by Anonymous user", true, $returnData);
-        } catch (TaskException $ex) {
+        } catch (ImagesException $ex) {
             sendResponse(500, false, $ex->getMessage());
         } catch (PDOException $ex) {
             error_log("Database query error - " . $ex, 0);

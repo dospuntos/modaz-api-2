@@ -48,7 +48,7 @@ if (array_key_exists("categoryid", $_GET)) { // GET/PATCH category by ID
             $returnData['categories'] = $categoryArray;
 
             sendResponse(200, true, null, true, $returnData);
-        } catch (TaskException $ex) {
+        } catch (CategoryException $ex) {
             sendResponse(500, false, $ex->getMessage());
         } catch (PDOException $ex) {
             error_log("Database query error - " . $ex, 0);
@@ -101,7 +101,7 @@ if (array_key_exists("categoryid", $_GET)) { // GET/PATCH category by ID
             $returnData['categories'] = $categoriesArray;
             sendResponse(200, true, $userId ? null : "Request by Anonymous user", true, $returnData);
             exit;
-        } catch (TaskException $ex) {
+        } catch (CategoryException $ex) {
             sendResponse(500, false, $ex->getMessage());
         } catch (PDOException $ex) {
             error_log("Database query error - " . $ex, 0);
@@ -157,7 +157,7 @@ if (array_key_exists("categoryid", $_GET)) { // GET/PATCH category by ID
             $returnData['categories'] = $categoryArray;
 
             sendResponse(201, true, "Category created", false, $returnData);
-        } catch (TaskException $ex) {
+        } catch (CategoryException $ex) {
             error_log("Database query error - " . $ex, 0);
             sendResponse(400, false, $ex->getMessage());
         } catch (PDOException $ex) {
