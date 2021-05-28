@@ -14,13 +14,21 @@ try {
 }
 
 // Check authentication - disabled for testing
-// $userId = checkAuthStatusAndReturnUserID($writeDB);
+$userId = checkAuthStatusAndReturnUserID($writeDB);
 
 if (array_key_exists("fix", $_GET)) { // FIX errors in JSON data
     // Fix invalid JSON entries
-} elseif (empty($_GET)) { // Get all images
+    sendResponse(200, true, "Method to fix image errors");
+} elseif (empty($_GET) || array_key_exists("check", $_GET)) { // Get all images
 
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+
+        if (array_key_exists("check", $_GET)) {
+            $check = true;
+        } else {
+            $check = false;
+        }
+
         try {
             $query = $readDB->prepare("SELECT id, images FROM $readDB->tblproducts");
             $query->execute();
@@ -29,7 +37,7 @@ if (array_key_exists("fix", $_GET)) { // FIX errors in JSON data
 
             $rowCount = $query->rowCount();
             while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
-                $images = new Images($row['id'], $row['images']);
+                $images = new Images($row['id'], $row['images'], $check);
                 $imagesArray[] = $images->returnImageAsArray();
             }
 

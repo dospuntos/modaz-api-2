@@ -8,8 +8,9 @@ class Images
     private $_id; // Product ID for the image
     private $_imageArray = array(); // Will hold an array of all image items.
 
-    public function __construct($id, $imgJson)
+    public function __construct($id, $imgJson, $checkFile = false)
     {
+        $this->setId($id);
         $jsonError = false; // Flag to check if there was an error in the JSON-data
         if (!$imgArray = json_decode($imgJson, true)) {
             //throw new ImagesException("Image JSON error (Data: >>>" . $imgArray . "<<<)");
@@ -17,11 +18,8 @@ class Images
             $jsonError = true;
         }
         foreach ($imgArray as $image) {
-            $this->setImageArray($image, $jsonError);
-            //echo "<div>Image: " . $image['image'] . ", Color: " . $image['color'] . "</div>";
+            $this->setImageArray($image, $jsonError, $checkFile);
         }
-        $this->setId($id);
-        //$this->setPath(isset($row['id']) ? $row['id'] : null);
     }
 
     public function getId()
@@ -43,7 +41,7 @@ class Images
         $this->_id = $id;
     }
 
-    public function setImageArray($image, $jsonError = false)
+    public function setImageArray($image, $jsonError = false, $check = false)
     {
         if (is_string($image)) {
             $image = array();
@@ -53,16 +51,22 @@ class Images
         if (!isset($image['color'])) $image['color'] = "color-error";
         $item = array(
             "image" => $image['image'],
-            "color" => $image['color'],
-            "isFile" => $this->checkIfImageExists($image['image']),
-            "jsonError" => $jsonError
+            "color" => $image['color']
         );
+
+        // Include debug data
+        if ($check) {
+            $item['isFile'] = $this->checkIfImageExists($image['image']);
+            $item['jsonError'] = $jsonError;
+        };
+
         $this->_imageArray[] = $item;
     }
 
     public function checkIfImageExists($image)
     {
-        return file_exists(__DIR__ . "/../../modaz_backup/images/products/" . $image);
+        return file_exists(__DIR__ . "/../../modaz_backup/images/products/" . $image); // Staging server
+        //return file_exists(__DIR__ . "/../../modaz_backup/images/products/" . $image); // Live server
     }
 
     public function returnImageAsArray()

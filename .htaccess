@@ -39,3 +39,4 @@ RewriteRule ^categories$ controller/categories.php [L]
 
 RewriteRule ^images$ controller/images.php [L]
 RewriteRule ^images/fix$ controller/images.php?fix=Y [L]
+RewriteRule ^images/check$ controller/images.php?check=Y [L]
