@@ -49,15 +49,20 @@ class Images
             $image = array();
             $jsonError = true;
         };
-        if (!isset($image['image'])) $image['image'] = "default-error.png";
+        if (!isset($image['image'])) $image['image'] = "default.png";
         if (!isset($image['color'])) $image['color'] = "color-error";
         $item = array(
             "image" => $image['image'],
             "color" => $image['color'],
-            "isFile" => false,
+            "isFile" => $this->checkIfImageExists($image['image']),
             "jsonError" => $jsonError
         );
         $this->_imageArray[] = $item;
+    }
+
+    public function checkIfImageExists($image)
+    {
+        return file_exists(__DIR__ . "/../../modaz_backup/images/products/" . $image);
     }
 
     public function returnImageAsArray()

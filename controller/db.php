@@ -29,6 +29,7 @@ class DB
             self::$writeDBConnection->tblproducts = $var_cls->dbprefix . "modaz_products";
             self::$writeDBConnection->tblproductvariants = $var_cls->dbprefix . "modaz_product_variants";
             self::$writeDBConnection->tblcategories = $var_cls->dbprefix . "categories";
+            self::$writeDBConnection->img_folder = __DIR__ . "/../modaz_backup/images/products/";
         }
         return self::$writeDBConnection;
     }
@@ -47,6 +48,7 @@ class DB
             self::$readDBConnection->tblproducts = $var_cls->dbprefix . "modaz_products";
             self::$readDBConnection->tblproductvariants = $var_cls->dbprefix . "modaz_product_variants";
             self::$readDBConnection->tblcategories = $var_cls->dbprefix . "categories";
+            self::$writeDBConnection->img_folder = __DIR__ . "/../modaz_backup/images/products/";
         }
         return self::$readDBConnection;
     }
