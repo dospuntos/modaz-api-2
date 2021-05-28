@@ -5,14 +5,23 @@ class ImagesException extends Exception
 
 class Images
 {
-    private $_url;
-    private $_path;
+    private $_id; // Product ID for the image
+    private $_imageArray = array(); // Will hold an array of all image items.
 
-    public function __construct($id, $title, $path)
+    public function __construct($id, $imgJson)
     {
+        $jsonError = false; // Flag to check if there was an error in the JSON-data
+        if (!$imgArray = json_decode($imgJson, true)) {
+            //throw new ImagesException("Image JSON error (Data: >>>" . $imgArray . "<<<)");
+            $imgArray = array("image" => "default.png", "color" => "bold-black");
+            $jsonError = true;
+        }
+        foreach ($imgArray as $image) {
+            $this->setImageArray($image, $jsonError);
+            //echo "<div>Image: " . $image['image'] . ", Color: " . $image['color'] . "</div>";
+        }
         $this->setId($id);
-        $this->setTitle($title);
-        $this->setPath($path);
+        //$this->setPath(isset($row['id']) ? $row['id'] : null);
     }
 
     public function getId()
@@ -20,46 +29,43 @@ class Images
         return $this->_id;
     }
 
-    public function getTitle()
+    public function getImageArray()
     {
-        return $this->_title;
-    }
-
-    public function getPath()
-    {
-        return $this->_path;
+        return $this->_imageArray;
     }
 
     public function setID($id)
     {
         if (($id !== null) && (!is_numeric($id) || $id < 0 || $id > 9223372036854775807 || $this->_id !== null)) {
-            throw new ProductException("Category ID error");
+            throw new ImagesException("Image ID error");
         }
 
         $this->_id = $id;
     }
 
-    public function setTitle($title)
+    public function setImageArray($image, $jsonError = false)
     {
-        if (strlen($title) < 0 || strlen($title) > 255) {
-            throw new ProductException("Category title error");
-        }
-
-        $this->_title = $title;
+        if (is_string($image)) {
+            $image = array();
+            $jsonError = true;
+        };
+        if (!isset($image['image'])) $image['image'] = "default-error.png";
+        if (!isset($image['color'])) $image['color'] = "color-error";
+        $item = array(
+            "image" => $image['image'],
+            "color" => $image['color'],
+            "isFile" => false,
+            "jsonError" => $jsonError
+        );
+        $this->_imageArray[] = $item;
     }
 
-    public function setPath($path)
+    public function returnImageAsArray()
     {
-        $this->_path = $path;
-    }
+        $image = array();
+        $image['product_id'] = $this->getId();
+        $image['items'] = $this->getImageArray();
 
-    public function returnCategoryAsArray()
-    {
-        $category = array();
-        $category['id'] = $this->getId();
-        $category['title'] = $this->getTitle();
-        $category['path'] = $this->getPath();
-
-        return $category;
+        return $image;
     }
 }

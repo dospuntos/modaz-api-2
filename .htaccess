@@ -38,3 +38,4 @@ RewriteRule ^categories/([0-9]+)$ controller/categories.php?categoryid=$1 [L]
 RewriteRule ^categories$ controller/categories.php [L]
 
 RewriteRule ^images$ controller/images.php [L]
+RewriteRule ^images/fix$ controller/images.php?fix=Y [L]
