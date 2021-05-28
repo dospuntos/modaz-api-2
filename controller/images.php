@@ -97,7 +97,6 @@ if (array_key_exists("missing", $_GET)) { // GET/PATCH category by ID
 
             $returnData['images'] = $imagesArray;
             sendResponse(200, true, $userId ? null : "Request by Anonymous user", true, $returnData);
-            exit;
         } catch (TaskException $ex) {
             sendResponse(500, false, $ex->getMessage());
         } catch (PDOException $ex) {

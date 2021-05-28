@@ -27,7 +27,7 @@ if (array_key_exists("categoryid", $_GET)) { // GET/PATCH category by ID
     if ($_SERVER['REQUEST_METHOD'] === 'GET') { // Return category by ID
 
         try {
-            $query = $readDB->prepare("SELECT id, title, path FROM $readDB->tblcategories WHERE id LIKE :categoryid");
+            $query = $readDB->prepare("SELECT id, name, description FROM $readDB->tblcategories WHERE id LIKE :categoryid");
 
             $query->bindParam(':categoryid', $categoryid, PDO::PARAM_INT);
             $query->execute();
@@ -39,7 +39,7 @@ if (array_key_exists("categoryid", $_GET)) { // GET/PATCH category by ID
             }
 
             while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
-                $category = new Category($row['id'], $row['title'], $row['path']);
+                $category = new Category($row['id'], $row['name'], $row['description']);
                 $categoryArray[] = $category->returnCategoryAsArray();
             }
 
@@ -76,6 +76,7 @@ if (array_key_exists("categoryid", $_GET)) { // GET/PATCH category by ID
 
         sendResponse(200, true, $messages);
     } elseif ($_SERVER['REQUEST_METHOD'] === 'PATCH') { // EDIT CATEGORY
+        if (!$userId) sendResponse(401, false, "User not authorized or not logged in.");
         sendResponse(200, true, "Category PATCH currently not implemented, but the request was successful for category ID " . $categoryid);
     } else {
         sendResponse(405, false, "Request method not allowed");
@@ -84,14 +85,14 @@ if (array_key_exists("categoryid", $_GET)) { // GET/PATCH category by ID
 
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         try {
-            $query = $readDB->prepare("SELECT id, title, path FROM $readDB->tblcategories");
+            $query = $readDB->prepare("SELECT id, name, description FROM $readDB->tblcategories");
             $query->execute();
 
             $categoriesArray = array();
 
             $rowCount = $query->rowCount();
             while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
-                $categories = new Category($row['id'], $row['title'], $row['path']);
+                $categories = new Category($row['id'], $row['name'], $row['description']);
                 $categoriesArray[] = $categories->returnCategoryAsArray();
             }
 
@@ -117,15 +118,16 @@ if (array_key_exists("categoryid", $_GET)) { // GET/PATCH category by ID
 
             if (!$jsonData = json_decode($rawPOSTData, true)) sendResponse(400, false, "Request body is not valid JSON");
 
-            // Required: Title
-            if (!isset($jsonData['title'])) sendResponse(400, false, "Title field is mandatory and must be provided");
+            // Required: Name
+            if (!isset($jsonData['name'])) sendResponse(400, false, "Name field is mandatory and must be provided");
 
             // Create the category
-            $title = $jsonData['title'];
+            $name = $jsonData['name'];
+            $description = isset($jsonData['description']) ? $jsonData['description'] : "";
 
-            $query = $writeDB->prepare("INSERT INTO $readDB->tblcategories (title, path) VALUES (:title, :path)");
-            $query->bindParam(':state', $state, PDO::PARAM_INT);
-            $query->bindParam(':release_date', $release_date, PDO::PARAM_STR);
+            $query = $writeDB->prepare("INSERT INTO $readDB->tblcategories (name, description, created) VALUES (:name, :description, NOW())");
+            $query->bindParam(':name', $name, PDO::PARAM_INT);
+            $query->bindParam(':description', $description, PDO::PARAM_STR);
 
             $query->execute();
 
@@ -135,7 +137,7 @@ if (array_key_exists("categoryid", $_GET)) { // GET/PATCH category by ID
 
             $lastCategoryID = $writeDB->lastInsertId();
 
-            $query = $readDB->prepare("SELECT id, title, path FROM $readDB->tblcategories WHERE id LIKE :categoryid");
+            $query = $readDB->prepare("SELECT id, name, description FROM $readDB->tblcategories WHERE id LIKE :categoryid");
             $query->bindParam(':categoryid', $lastCategoryID, PDO::PARAM_INT);
             $query->execute();
 
@@ -146,7 +148,7 @@ if (array_key_exists("categoryid", $_GET)) { // GET/PATCH category by ID
             $categoryArray = array();
 
             while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
-                $category = new Category($row['id'], $row['title'], $row['path']);
+                $category = new Category($row['id'], $row['name'], $row['description']);
                 $categoryArray[] = $category->returnCategoryAsArray();
             }
 

@@ -6,14 +6,14 @@ class CategoryException extends Exception
 class Category
 {
     private $_id;
-    private $_title;
-    private $_path;
+    private $_name;
+    private $_description;
 
-    public function __construct($id, $title, $path)
+    public function __construct($id, $name, $description)
     {
         $this->setId($id);
-        $this->setTitle($title);
-        $this->setPath($path);
+        $this->setName($name);
+        $this->setDescription($description);
     }
 
     public function getId()
@@ -21,14 +21,14 @@ class Category
         return $this->_id;
     }
 
-    public function getTitle()
+    public function getName()
     {
-        return $this->_title;
+        return $this->_name;
     }
 
-    public function getPath()
+    public function getDescription()
     {
-        return $this->_path;
+        return $this->_description;
     }
 
     public function setID($id)
@@ -40,26 +40,26 @@ class Category
         $this->_id = $id;
     }
 
-    public function setTitle($title)
+    public function setName($name)
     {
-        if (strlen($title) < 0 || strlen($title) > 255) {
-            throw new ProductException("Category title error");
+        if (strlen($name) < 0 || strlen($name) > 255) {
+            throw new ProductException("Category name error");
         }
 
-        $this->_title = $title;
+        $this->_name = $name;
     }
 
-    public function setPath($path)
+    public function setDescription($description)
     {
-        $this->_path = $path;
+        $this->_description = $description;
     }
 
     public function returnCategoryAsArray()
     {
         $category = array();
         $category['id'] = $this->getId();
-        $category['title'] = $this->getTitle();
-        $category['path'] = $this->getPath();
+        $category['name'] = $this->getName();
+        $category['description'] = $this->getDescription();
 
         return $category;
     }
