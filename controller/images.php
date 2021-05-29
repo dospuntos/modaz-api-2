@@ -33,14 +33,14 @@ if (array_key_exists("fix", $_GET)) { // FIX errors in JSON data
                     // Error with JSON data
                     $img = "";
                     // Set default value if NULL
-                    if ($row['images'] === NULL || $row['images'] === "") { // NULL or empty
-                        $img = array(
-                            "image" => "default.php",
-                            "color" => "bold-black"
-                        );
-                    } elseif (preg_match("/^[0a-zA-Z]/", $row['images'])) { // simple image string (no array)
+                    if (preg_match("/^[0a-zA-Z]/", $row['images'])) { // simple image string (no array)
                         $img = array(
                             "image" => $row['images'],
+                            "color" => "bold-black"
+                        );
+                    } else { // NULL or empty or invalid
+                        $img = array(
+                            "image" => "default.php",
                             "color" => "bold-black"
                         );
                     }
@@ -55,7 +55,7 @@ if (array_key_exists("fix", $_GET)) { // FIX errors in JSON data
                 }
             }
 
-            $returnData['images_fixes'] = $fixCount;
+            $returnData['images_fixed'] = $fixCount;
             sendResponse(200, true, $messages, false, $returnData);
         } catch (ImagesException $ex) {
             sendResponse(500, false, $ex->getMessage());
