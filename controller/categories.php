@@ -22,7 +22,7 @@ if (array_key_exists("categoryid", $_GET)) { // GET/PATCH category by ID
 
     $categoryid = $_GET['categoryid'];
 
-    if ($categoryid === '' || !is_numeric($categoryid)) sendResponse(400, false, "Category ID cannot be blank or must be numeric");
+    if ($categoryid === '' || !is_numeric($categoryid)) sendResponse(400, false, "Category ID cannot be blank and must be numeric");
 
     if ($_SERVER['REQUEST_METHOD'] === 'GET') { // Return category by ID
 
@@ -77,7 +77,106 @@ if (array_key_exists("categoryid", $_GET)) { // GET/PATCH category by ID
         sendResponse(200, true, $messages);
     } elseif ($_SERVER['REQUEST_METHOD'] === 'PATCH') { // EDIT CATEGORY
         if (!$userId) sendResponse(401, false, "User not authorized or not logged in.");
-        sendResponse(200, true, "Category PATCH currently not implemented, but the request was successful for category ID " . $categoryid);
+        try {
+
+            if (!isset($_SERVER['CONTENT_TYPE']) || $_SERVER['CONTENT_TYPE'] !== 'application/json') {
+                sendResponse(400, false, "Content type header is not set to JSON");
+            }
+
+            $rawPOSTData = file_get_contents('php://input');
+
+            if (!$jsonData = json_decode($rawPOSTData)) {
+                sendResponse(400, false, "Request body is not valid JSON");
+            }
+
+            $name_updated = false;
+            $description_updated = false;
+
+            $queryFields = "";
+
+            if (isset($jsonData->name)) {
+                $name_updated = true;
+                $queryFields .=  "name = :name, ";
+            }
+
+            if (isset($jsonData->description)) {
+                $description_updated = true;
+                $queryFields .= "description = :description, ";
+            }
+
+            $queryFields = rtrim($queryFields, ", ");
+
+            if ($name_updated === false && $description_updated === false) {
+                sendResponse(400, false, "No category fields provided");
+            }
+
+            $query = $writeDB->prepare("SELECT id, name, description FROM $writeDB->tblcategories WHERE id = :categoryid");
+            $query->bindParam(':categoryid', $categoryid, PDO::PARAM_INT);
+            $query->execute();
+
+            $rowCount = $query->rowCount();
+
+            if ($rowCount === 0) {
+                sendResponse(404, false, "No category found to update");
+            }
+
+            while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
+                $category = new Category($row['id'], $row['name'], $row['description']);
+            }
+
+            $queryString = "UPDATE $writeDB->tblcategories SET " . $queryFields . " WHERE id = :categoryid";
+            $query = $writeDB->prepare($queryString);
+
+            if ($name_updated === true) {
+                $category->setName($jsonData->name);
+                $up_name = $category->getName();
+                $query->bindParam(':name', $up_name, PDO::PARAM_STR);
+            }
+
+            if ($description_updated === true) {
+                $category->setDescription($jsonData->description);
+                $up_description = $category->getDescription();
+                $query->bindParam(':description', $up_description, PDO::PARAM_STR);
+            }
+
+            $query->bindParam(":categoryid", $categoryid, PDO::PARAM_INT);
+            $query->execute();
+
+            $rowCount = $query->rowCount();
+
+            if ($rowCount === 0) {
+                sendResponse(404, false, "Category not updated");
+            }
+
+            // Get updated Category from database
+            $query = $writeDB->prepare('SELECT id, name, description FROM ' . $writeDB->tblcategories . ' WHERE id = :categoryid');
+            $query->bindParam(':categoryid', $categoryid, PDO::PARAM_INT);
+            $query->execute();
+
+            $rowCount = $query->rowCount();
+
+            if ($rowCount === 0) {
+                sendResponse(404, false, "No category found after update");
+            }
+
+            $categoryArray = array();
+
+            while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
+                $category = new Category($row['id'], $row['name'], $row['description']);
+                $categoryArray[] = $category->returnCategoryAsArray();
+            }
+
+            $returnData = array();
+            $returnData['rows_returned'] = $rowCount;
+            $returnData['categories'] = $categoryArray;
+
+            sendResponse(200, true, "Category updated");
+        } catch (CategoryException $ex) {
+            sendResponse(400, false, $ex->getMessage());
+        } catch (PDOException $ex) {
+            error_log("Database query error - " . $ex);
+            sendResponse(500, false, "Failed to update category - check your data for errors");
+        }
     } else {
         sendResponse(405, false, "Request method not allowed");
     }
