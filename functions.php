@@ -149,3 +149,29 @@ function joinProductsById($productsArray)
 
     return array_values($result);
 }
+
+function updateImageInDB($writeDB, $id, $jsonData)
+{
+    // Check if valid json data
+    if (!json_decode($jsonData, true)) {
+        return 0;
+    }
+    // Update database
+    try {
+        $query = $writeDB->prepare("UPDATE $writeDB->tblproducts SET images=:images WHERE id = :id");
+        $query->bindParam(':images', $jsonData, PDO::PARAM_STR);
+        $query->bindParam(':id', $id, PDO::PARAM_INT);
+        $query->execute();
+
+        $rowCount = $query->rowCount();
+
+        if ($rowCount === 0) {
+            //sendResponse(401, false, "Invalid Access Token");
+            return 0;
+        }
+
+        return $rowCount;
+    } catch (PDOException $ex) {
+        sendResponse(500, false, "There was an issue updating the image - please try again");
+    }
+}

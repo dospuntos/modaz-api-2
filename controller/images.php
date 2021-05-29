@@ -18,7 +18,51 @@ $userId = checkAuthStatusAndReturnUserID($writeDB);
 
 if (array_key_exists("fix", $_GET)) { // FIX errors in JSON data
     if ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
-        sendResponse(200, true, "Method to fix image errors");
+        try {
+            $query = $readDB->prepare("SELECT id, images FROM $readDB->tblproducts");
+            $query->execute();
+
+            $imagesArray = array();
+
+            $rowCount = $query->rowCount();
+            $fixCount = 0;
+            $messages = array();
+
+            while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
+                if (!$imgArray = json_decode($row['images'], true)) {
+                    // Error with JSON data
+                    $img = "";
+                    // Set default value if NULL
+                    if ($row['images'] === NULL || $row['images'] === "") { // NULL or empty
+                        $img = array(
+                            "image" => "default.php",
+                            "color" => "bold-black"
+                        );
+                    } elseif (preg_match("/^[0a-zA-Z]/", $row['images'])) { // simple image string (no array)
+                        $img = array(
+                            "image" => $row['images'],
+                            "color" => "bold-black"
+                        );
+                    }
+
+                    // Update image in database
+                    if (updateImageInDB($writeDB, $row['id'], json_encode(array($img)))) {
+                        $messages[] = "Updated image for ID " . $row['id'] . " from '" . $row['images'] . "' to '" . json_encode(array($img)) . "'";
+                        $fixCount++;
+                    } else {
+                        $messages[] =  "Error updating image for ID " . $row['id'] . " from '" . $row['images'] . "' to '" . json_encode(array($img)) . "'";
+                    }
+                }
+            }
+
+            $returnData['images_fixes'] = $fixCount;
+            sendResponse(200, true, $messages, false, $returnData);
+        } catch (ImagesException $ex) {
+            sendResponse(500, false, $ex->getMessage());
+        } catch (PDOException $ex) {
+            error_log("Database query error - " . $ex, 0);
+            sendResponse(500, false, "Failed to fix images");
+        }
     } else {
         sendResponse(405, false, "Request method not allowed");
     }

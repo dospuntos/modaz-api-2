@@ -66,7 +66,7 @@ class Images
     public function checkIfImageExists($image)
     {
         return file_exists(__DIR__ . "/../../modaz_backup/images/products/" . $image); // Staging server
-        //return file_exists(__DIR__ . "/../../modaz_backup/images/products/" . $image); // Live server
+        //return file_exists(__DIR__ . "../images/products" . $image); // Live server
     }
 
     public function returnImageAsArray()
