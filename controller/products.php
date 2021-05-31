@@ -92,7 +92,326 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
         }
         sendResponse(200, true, $messages);
     } elseif ($_SERVER['REQUEST_METHOD'] === 'PATCH') { // EDIT PRODUCT
-        sendResponse(200, true, "Product PATCH currently not implemented, but the request was successful for product ID " . $productid);
+
+        if (!$userId) sendResponse(401, false, "User not authorized or not logged in.");
+
+        try {
+
+            if (!isset($_SERVER['CONTENT_TYPE']) || $_SERVER['CONTENT_TYPE'] !== 'application/json') {
+                sendResponse(400, false, "Content type header is not set to JSON");
+            }
+
+            $rawPOSTData = file_get_contents('php://input');
+
+            if (!$jsonData = json_decode($rawPOSTData)) {
+                sendResponse(400, false, "Request body is not valid JSON");
+            }
+
+            $state_updated = false;
+            $release_date_updated = false;
+            $orderdate_updated = false;
+            $season_updated = false;
+            $featured_updated = false;
+            $name_updated = false;
+            $images_updated = false;
+            $category_updated = false;
+            $description_updated = false;
+            $wholesaleprice_updated = false;
+            $msrp_updated = false;
+            $price_updated = false;
+            $zinprice_updated = false;
+            $price_discount_updated = false;
+            $tags_updated = false;
+            $notes_updated = false;
+            $weight_updated = false;
+            $composition_updated = false;
+            $manufacturer_updated = false;
+            $country_updated = false;
+
+            $queryFields = "";
+
+            if (isset($jsonData->state)) {
+                $state_updated = true;
+                $queryFields .=  "state = :state, ";
+            }
+
+            if (isset($jsonData->release_date)) {
+                $release_date_updated = true;
+                $queryFields .=  "release_date = :release_date, ";
+            }
+
+            if (isset($jsonData->orderdate)) {
+                $orderdate_updated = true;
+                $queryFields .=  "orderdate = :orderdate, ";
+            }
+
+            if (isset($jsonData->season)) {
+                $season_updated = true;
+                $queryFields .=  "season = :season, ";
+            }
+
+            if (isset($jsonData->featured)) {
+                $featured_updated = true;
+                $queryFields .=  "featured = :featured, ";
+            }
+
+            if (isset($jsonData->name)) {
+                $name_updated = true;
+                $queryFields .=  "name = :name, ";
+            }
+
+            if (isset($jsonData->images)) {
+                $images_updated = true;
+                $queryFields .=  "images = :images, ";
+            }
+
+            if (isset($jsonData->category)) {
+                $category_updated = true;
+                $queryFields .=  "category = :category, ";
+            }
+
+            if (isset($jsonData->description)) {
+                $description_updated = true;
+                $queryFields .=  "description = :description, ";
+            }
+
+            if (isset($jsonData->wholesaleprice)) {
+                $wholesaleprice_updated = true;
+                $queryFields .=  "wholesaleprice = :wholesaleprice, ";
+            }
+
+            if (isset($jsonData->msrp)) {
+                $msrp_updated = true;
+                $queryFields .=  "msrp = :msrp, ";
+            }
+
+            if (isset($jsonData->price)) {
+                $price_updated = true;
+                $queryFields .=  "price = :price, ";
+            }
+
+            if (isset($jsonData->zinprice)) {
+                $zinprice_updated = true;
+                $queryFields .=  "zinprice = :zinprice, ";
+            }
+
+            if (isset($jsonData->price_discount)) {
+                $price_discount_updated = true;
+                $queryFields .=  "price_discount = :price_discount, ";
+            }
+
+            if (isset($jsonData->tags)) {
+                $tags_updated = true;
+                $queryFields .=  "tags = :tags, ";
+            }
+
+            if (isset($jsonData->notes)) {
+                $notes_updated = true;
+                $queryFields .=  "notes = :notes, ";
+            }
+
+            if (isset($jsonData->weight)) {
+                $weight_updated = true;
+                $queryFields .=  "weight = :weight, ";
+            }
+
+            if (isset($jsonData->composition)) {
+                $composition_updated = true;
+                $queryFields .=  "composition = :composition, ";
+            }
+
+            if (isset($jsonData->manufacturer)) {
+                $manufacturer_updated = true;
+                $queryFields .=  "manufacturer = :manufacturer, ";
+            }
+
+            if (isset($jsonData->country)) {
+                $country_updated = true;
+                $queryFields .=  "country = :country, ";
+            }
+
+            $queryFields = rtrim($queryFields, ", ");
+
+            if (!$state_updated && !$release_date_updated && !$orderdate_updated && !$season_updated && !$featured_updated && !$name_updated && !$images_updated && !$category_updated && !$description_updated && !$wholesaleprice_updated && !$msrp_updated && !$price_updated && !$zinprice_updated && !$price_discount_updated && !$tags_updated && !$notes_updated && !$weight_updated && !$composition_updated && !$manufacturer_updated && !$country_updated) {
+                sendResponse(400, false, "No product fields provided");
+            }
+
+            $query = $writeDB->prepare("SELECT * FROM $writeDB->tblproducts WHERE id = :productid");
+            $query->bindParam(':productid', $productid, PDO::PARAM_INT);
+            $query->execute();
+
+            $rowCount = $query->rowCount();
+
+            if ($rowCount === 0) {
+                sendResponse(404, false, "No product found to update");
+            }
+
+            while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
+                $product = new Product($userId, $row);
+            }
+
+            $queryString = "UPDATE $writeDB->tblproducts SET " . $queryFields . " WHERE id = :productid";
+            $query = $writeDB->prepare($queryString);
+
+            if ($state_updated === true) {
+                $product->setState($jsonData->state);
+                $up_state = $product->getState();
+                $query->bindParam(':state', $up_state, PDO::PARAM_STR);
+            }
+
+            if ($release_date_updated === true) {
+                $product->setRelease_date($jsonData->release_date);
+                $up_release_date = $product->getRelease_date();
+                $query->bindParam(':release_date', $up_release_date, PDO::PARAM_STR);
+            }
+
+            if ($orderdate_updated === true) {
+                $product->setOrderdate($jsonData->orderdate);
+                $up_orderdate = $product->getOrderdate();
+                $query->bindParam(':orderdate', $up_orderdate, PDO::PARAM_STR);
+            }
+
+            if ($season_updated === true) {
+                $product->setSeason($jsonData->season);
+                $up_season = $product->getSeason();
+                $query->bindParam(':season', $up_season, PDO::PARAM_STR);
+            }
+
+            if ($featured_updated === true) {
+                $product->setFeatured($jsonData->featured);
+                $up_featured = $product->getFeatured();
+                $query->bindParam(':featured', $up_featured, PDO::PARAM_STR);
+            }
+
+            if ($name_updated === true) {
+                $product->setName($jsonData->name);
+                $up_name = $product->getName();
+                $query->bindParam(':name', $up_name, PDO::PARAM_STR);
+            }
+
+            if ($images_updated === true) {
+                $product->setImages($jsonData->images);
+                $up_images = json_encode($product->getImages());
+                $query->bindParam(':images', $up_images, PDO::PARAM_STR);
+            }
+
+            if ($category_updated === true) {
+                $product->setCategory($jsonData->category);
+                $up_category = $product->getCategory();
+                $query->bindParam(':category', $up_category, PDO::PARAM_STR);
+            }
+
+            if ($description_updated === true) {
+                $product->setDescription($jsonData->description);
+                $up_description = $product->getDescription();
+                $query->bindParam(':description', $up_description, PDO::PARAM_STR);
+            }
+
+            if ($wholesaleprice_updated === true) {
+                $product->setWholesaleprice($jsonData->wholesaleprice);
+                $up_wholesaleprice = $product->getWholesaleprice();
+                $query->bindParam(':wholesaleprice', $up_wholesaleprice, PDO::PARAM_STR);
+            }
+
+            if ($msrp_updated === true) {
+                $product->setMsrp($jsonData->msrp);
+                $up_msrp = $product->getMsrp();
+                $query->bindParam(':msrp', $up_msrp, PDO::PARAM_INT);
+            }
+
+            if ($price_updated === true) {
+                $product->setPrice($jsonData->price);
+                $up_price = $product->getPrice();
+                $query->bindParam(':price', $up_price, PDO::PARAM_INT);
+            }
+
+            if ($zinprice_updated === true) {
+                $product->setZinprice($jsonData->zinprice);
+                $up_zinprice = $product->getZinprice();
+                $query->bindParam(':zinprice', $up_zinprice, PDO::PARAM_INT);
+            }
+
+            if ($price_discount_updated === true) {
+                $product->setPriceDiscount($jsonData->price_discount);
+                $up_price_discount = $product->getPriceDiscount();
+                $query->bindParam(':price_discount', $up_price_discount, PDO::PARAM_INT);
+            }
+
+            if ($tags_updated === true) {
+                $product->setTags($jsonData->tags);
+                $up_tags = $product->getTags();
+                $query->bindParam(':tags', $up_tags, PDO::PARAM_STR);
+            }
+
+            if ($notes_updated === true) {
+                $product->setNotes($jsonData->notes);
+                $up_notes = $product->getNotes();
+                $query->bindParam(':notes', $up_notes, PDO::PARAM_STR);
+            }
+
+            if ($weight_updated === true) {
+                $product->setWeight($jsonData->weight);
+                $up_weight = $product->getWeight();
+                $query->bindParam(':weight', $up_weight, PDO::PARAM_STR);
+            }
+
+            if ($composition_updated === true) {
+                $product->setComposition($jsonData->composition);
+                $up_composition = $product->getComposition();
+                $query->bindParam(':composition', $up_composition, PDO::PARAM_STR);
+            }
+
+            if ($manufacturer_updated === true) {
+                $product->setManufacturer($jsonData->manufacturer);
+                $up_manufacturer = $product->getManufacturer();
+                $query->bindParam(':manufacturer', $up_manufacturer, PDO::PARAM_STR);
+            }
+
+            if ($country_updated === true) {
+                $product->setCountry($jsonData->country);
+                $up_country = $product->getCountry();
+                $query->bindParam(':country', $up_country, PDO::PARAM_STR);
+            }
+
+            $query->bindParam(":productid", $productid, PDO::PARAM_INT);
+            $query->execute();
+
+            $rowCount = $query->rowCount();
+
+            if ($rowCount === 0) {
+                sendResponse(404, false, "Product not updated", false, $query->debugDumpParams());
+            }
+
+            // Get updated Product from database
+            $query = $writeDB->prepare("SELECT * FROM $writeDB->tblproducts WHERE id = :productid");
+            $query->bindParam(':productid', $productid, PDO::PARAM_INT);
+            $query->execute();
+
+            $rowCount = $query->rowCount();
+
+            if ($rowCount === 0) {
+                sendResponse(404, false, "No product found after update");
+            }
+
+            $productArray = array();
+
+            while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
+                $product = new Product($userId, $row);
+                $productArray[] = $product->returnProductAsArray();
+            }
+
+            $returnData = array();
+            $returnData['rows_returned'] = $rowCount;
+            $returnData['products'] = $productArray;
+
+            sendResponse(200, true, "Product updated", false, $returnData);
+        } catch (ProductException $ex) {
+            sendResponse(400, false, $ex->getMessage());
+        } catch (PDOException $ex) {
+            error_log("Database query error - " . $ex);
+            sendResponse(500, false, "Failed to update product - check your data for errors");
+        }
+        // End PATCH
     } else {
         sendResponse(405, false, "Request method not allowed");
     }
@@ -206,7 +525,7 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
             $rowCount = $query->rowCount();
             while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
                 // Skip if no userId (not logged in) and product is unpublished
-                if (!$userId && !$row['state']) continue;
+                if (!$userId && $row['state'] !== 1) continue;
 
                 $product = new Product($userId, $row);
                 $productsArray[] = $product->returnProductAsArray();

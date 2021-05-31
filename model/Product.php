@@ -21,6 +21,8 @@ class Product
     private $_price;
     private $_zinprice;
     private $_price_discount;
+    private $_tags;
+    private $_notes;
     private $_weight;
     private $_composition;
     private $_manufacturer;
@@ -32,10 +34,8 @@ class Product
     private $_color;
     private $_stock;
 
-    public function __construct(
-        $userId,
-        $row
-    ) {
+    public function __construct($userId, $row)
+    {
         $this->setID(isset($row['id']) ? $row['id'] : null);
         $this->setName($row['name']);
         $this->setState(isset($row['state']) ? $row['state'] : 1);
@@ -46,11 +46,13 @@ class Product
         $this->setOrderdate(isset($row['orderdate']) ? $row['orderdate'] : "0000-00-00");
         $this->setRelease_date(isset($row['release_date']) ? $row['release_date'] : "0000-00-00");
         $this->setSeason(isset($row['season']) ? $row['season'] : "");
-        $this->setWholesaleprice(isset($row['wholesaleprice']) ? $row['wholesaleprice'] : "0", $userId);
-        $this->setMsrp(isset($row['msrp']) ? $row['msrp'] : "0", $userId);
-        $this->setPrice(isset($row['price']) ? $row['price'] : "0");
-        $this->setZinprice(isset($row['zinprice']) ? $row['zinprice'] : "0");
-        $this->setPriceDiscount(isset($row['price_discount']) ? $row['price_discount'] : "0");
+        $this->setWholesaleprice(isset($row['wholesaleprice']) ? $row['wholesaleprice'] : 0, $userId);
+        $this->setMsrp(isset($row['msrp']) ? $row['msrp'] : 0, $userId);
+        $this->setPrice(isset($row['price']) ? $row['price'] : 0);
+        $this->setZinprice(isset($row['zinprice']) ? $row['zinprice'] : 0);
+        $this->setPriceDiscount(isset($row['price_discount']) ? $row['price_discount'] : 0);
+        $this->setTags(isset($row['tags']) ? $row['tags'] : "");
+        $this->setNotes(isset($row['notes']) ? $row['notes'] : "");
         $this->setWeight(isset($row['weight']) ? $row['weight'] : "0");
         $this->setComposition(isset($row['composition']) ? $row['composition'] : "");
         $this->setManufacturer(isset($row['manufacturer']) ? $row['manufacturer'] : "");
@@ -105,6 +107,16 @@ class Product
     public function getRelease_date()
     {
         return $this->_release_date;
+    }
+
+    public function getTags()
+    {
+        return $this->_tags;
+    }
+
+    public function getNotes()
+    {
+        return $this->_notes;
     }
 
     public function getSeason()
@@ -225,8 +237,8 @@ class Product
     public function setImages($images)
     {
         if (!$jsonData = json_decode($images)) {
-            $this->_images = array((object)["image" => "defaultasdf.jpg", "color" => "bold black"]);
-            //throw new ProductException("Not a valid JSON format for images - " . $images);
+            //$this->_images = array((object)["image" => "default.png", "color" => "bold black"]);
+            throw new ProductException("Not a valid JSON format for images for product ID - " . $this->_id . " (" . $images . ")");
         } else {
             $this->_images = $jsonData;
         }
@@ -262,17 +274,18 @@ class Product
 
     public function setWholesaleprice($wholesaleprice, $userId = 0)
     {
-        if (($wholesaleprice !== null) && (!is_numeric($wholesaleprice) || $wholesaleprice < 0 || $wholesaleprice > 9223372036854775807 || $this->_wholesaleprice !== null)) {
-            throw new ProductException("Wholesale price error");
+        $wholesaleprice = (float) $wholesaleprice;
+        if (($wholesaleprice !== null) && (!is_float($wholesaleprice) || $wholesaleprice < 0.00 || $wholesaleprice > 9223372036854775807.00)) {
+            throw new ProductException("Wholesale price error - " . $wholesaleprice . " (" . gettype($wholesaleprice) . ")");
         }
         // Set wholesale price to 0 if not authorized
         $this->_wholesaleprice = $userId ? $wholesaleprice : 0;
     }
     public function setMsrp($msrp, $userId = 0)
     {
-        if (($msrp !== null) && (!is_numeric($msrp) || $msrp < 0 || $msrp > 9223372036854775807 || $this->_msrp !== null)) {
-            $this->_msrp = 0;
-            //throw new ProductException("MSRP price error");
+        $msrp = (int) $msrp;
+        if (($msrp !== null) && (!is_numeric($msrp) || $msrp < 0 || $msrp > 9223372036854775807)) {
+            throw new ProductException("MSRP price error");
         } else {
             // Set MSRP to 0 if not authorized
             $this->_msrp = $userId ? (int)$msrp : 0;
@@ -281,7 +294,8 @@ class Product
 
     public function setPrice($price)
     {
-        if (($price !== null) && (!is_numeric($price) || $price < 0 || $price > 9223372036854775807 || $this->_price !== null)) {
+        $price = (int) $price;
+        if (($price !== null) && (!is_numeric($price) || $price < 0 || $price > 9223372036854775807)) {
             throw new ProductException("Product price error");
         }
 
@@ -290,7 +304,8 @@ class Product
 
     public function setZinprice($zinprice)
     {
-        if (($zinprice !== null) && (!is_numeric($zinprice) || $zinprice < 0 || $zinprice > 9223372036854775807 || $this->_zinprice !== null)) {
+        $zinprice = (int) $zinprice;
+        if (($zinprice !== null) && (!is_numeric($zinprice) || $zinprice < 0 || $zinprice > 9223372036854775807)) {
             throw new ProductException("Product ZIN price error");
         }
 
@@ -299,11 +314,22 @@ class Product
 
     public function setPriceDiscount($price_discount)
     {
-        if (($price_discount !== null) && (!is_numeric($price_discount) || $price_discount < 0 || $price_discount > 9223372036854775807 || $this->_price_discount !== null)) {
+        $price_discount = (int) $price_discount;
+        if (($price_discount !== null) && (!is_numeric($price_discount) || $price_discount < 0 || $price_discount > 9223372036854775807)) {
             throw new ProductException("Product discount price error");
         }
         // Return 0 if null
         $this->_price_discount = $price_discount ? $price_discount : 0;
+    }
+
+    public function setTags($tags)
+    {
+        $this->_tags = $tags;
+    }
+
+    public function setNotes($notes)
+    {
+        $this->_notes = $notes;
     }
 
     public function setWeight($weight)
@@ -373,6 +399,8 @@ class Product
         $product['price'] = $this->getPrice();
         $product['zinprice'] = $this->getZinprice();
         $product['price_discount'] = $this->getPriceDiscount();
+        $product['tags'] = $this->getTags();
+        $product['notes'] = $this->getNotes();
         $product['weight'] = $this->getWeight();
         $product['composition'] = $this->getComposition();
         $product['manufacturer'] = $this->getManufacturer();
