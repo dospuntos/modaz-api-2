@@ -308,13 +308,13 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
             }
 
             if ($wholesaleprice_updated === true) {
-                $product->setWholesaleprice($jsonData->wholesaleprice);
+                $product->setWholesaleprice($jsonData->wholesaleprice, $userId);
                 $up_wholesaleprice = $product->getWholesaleprice();
                 $query->bindParam(':wholesaleprice', $up_wholesaleprice, PDO::PARAM_STR);
             }
 
             if ($msrp_updated === true) {
-                $product->setMsrp($jsonData->msrp);
+                $product->setMsrp($jsonData->msrp, $userId);
                 $up_msrp = $product->getMsrp();
                 $query->bindParam(':msrp', $up_msrp, PDO::PARAM_INT);
             }
@@ -379,7 +379,7 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
             $rowCount = $query->rowCount();
 
             if ($rowCount === 0) {
-                sendResponse(404, false, "Product not updated", false, $query->debugDumpParams());
+                sendResponse(404, false, "No changes made to product");
             }
 
             // Get updated Product from database
