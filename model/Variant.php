@@ -7,61 +7,24 @@ class ProductException extends Exception
 class Product
 {
     private $_id;
-    private $_name;
-    private $_state;
-    private $_description;
-    private $_images;
-    private $_category;
-    private $_featured;
-    private $_orderdate;
-    private $_release_date;
-    private $_season;
-    private $_wholesaleprice;
-    private $_msrp;
-    private $_price;
-    private $_zinprice;
-    private $_price_discount;
-    private $_tags;
-    private $_notes;
-    private $_weight;
-    private $_composition;
-    private $_manufacturer;
-    private $_country;
-
-    private $_vid;
-    private $_upc;
+    private $_product_id;
     private $_size;
     private $_color;
     private $_stock;
+    private $_upc;
+    private $_item;
+    private $_transport_id;
 
     public function __construct($userId, $row)
     {
         $this->setID(isset($row['id']) ? $row['id'] : null);
-        $this->setName($row['name']);
-        $this->setState(isset($row['state']) ? $row['state'] : 1);
-        $this->setDescription(isset($row['description']) ? $row['description'] : null);
-        $this->setImages(isset($row['images']) ? $row['images'] : '[{"image" : "default.png", "color" : "bold black"}]');
-        $this->setCategory(isset($row['category']) ? $row['category'] : 8);
-        $this->setFeatured(isset($row['featured']) ? $row['featured'] : 0);
-        $this->setOrderdate(isset($row['orderdate']) ? $row['orderdate'] : "0000-00-00");
-        $this->setRelease_date(isset($row['release_date']) ? $row['release_date'] : "0000-00-00");
-        $this->setSeason(isset($row['season']) ? $row['season'] : "");
-        $this->setWholesaleprice(isset($row['wholesaleprice']) ? $row['wholesaleprice'] : 0, $userId);
-        $this->setMsrp(isset($row['msrp']) ? $row['msrp'] : 0, $userId);
-        $this->setPrice(isset($row['price']) ? $row['price'] : 0);
-        $this->setZinprice(isset($row['zinprice']) ? $row['zinprice'] : 0);
-        $this->setPriceDiscount(isset($row['price_discount']) ? $row['price_discount'] : 0);
-        $this->setTags(isset($row['tags']) ? $row['tags'] : "");
-        $this->setNotes(isset($row['notes']) ? $row['notes'] : "");
-        $this->setWeight(isset($row['weight']) ? $row['weight'] : "0");
-        $this->setComposition(isset($row['composition']) ? $row['composition'] : "");
-        $this->setManufacturer(isset($row['manufacturer']) ? $row['manufacturer'] : "");
-        $this->setCountry(isset($row['country']) ? $row['country'] : "");
-        $this->setVid(isset($row['vid']) ? $row['vid'] : null);
-        $this->setUpc(isset($row['upc']) ? $row['upc'] : 0);
+        $this->setProduct_id(isset($row['product_id']) ? $row['product_id'] : null);
         $this->setSize(isset($row['size']) ? $row['size'] : 0);
         $this->setColor(isset($row['color']) ? $row['color'] : 0);
         $this->setStock(isset($row['stock']) ? $row['stock'] : 1);
+        $this->setUpc(isset($row['upc']) ? $row['upc'] : 0);
+        $this->setItem(isset($row['item']) ? $row['item'] : "");
+        $this->setTransport_id(isset($row['transport_id']) ? $row['transport_id'] : null);
     }
 
     public function getID()
@@ -69,9 +32,9 @@ class Product
         return $this->_id;
     }
 
-    public function getName()
+    public function getProduct_id()
     {
-        return $this->_name;
+        return $this->_product_id;
     }
 
     public function getState()
@@ -236,12 +199,9 @@ class Product
 
     public function setImages($images)
     {
-        //$jsonData = json_decode(strVal($images));
-        //$this->_images = $images;
-        //die(var_dump(json_decode('[{"image":"zumba-for-all-muscle-tanks-9-pk-multi.jpg","color":"multi"}]')));
         if (!$jsonData = json_decode($images)) {
-            //$this->_images = array((object)[{"image" : "default.png", "color" : "bold black"}]);
-            throw new ProductException("Not a valid JSON format for images for product ID - " . $this->_id . " (" . json_encode($images) . ")");
+            //$this->_images = array((object)["image" => "default.png", "color" => "bold black"]);
+            throw new ProductException("Not a valid JSON format for images for product ID - " . $this->_id . " (" . $images . ")");
         } else {
             $this->_images = $jsonData;
         }

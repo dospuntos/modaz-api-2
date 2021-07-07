@@ -332,6 +332,7 @@ if (array_key_exists("sessionid", $_GET)) {
         $returnData = array();
         $returnData['session_id'] = intval($lastSessionID);
         $returnData['full_name'] = $returned_fullname;
+        $returnData['email'] = $returned_username;
         $returnData['access_token'] = $accesstoken;
         $returnData['access_token_expires_in'] = $access_token_expiry_seconds;
         $returnData['refresh_token'] = $refreshtoken;

@@ -290,8 +290,9 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
             }
 
             if ($images_updated === true) {
-                $product->setImages($jsonData->images);
-                $up_images = json_encode($product->getImages());
+                //$product->setImages($jsonData->images);
+                //$up_images = json_encode($product->getImages());
+                $up_images = json_encode($jsonData->images);
                 $query->bindParam(':images', $up_images, PDO::PARAM_STR);
             }
 
