@@ -39,3 +39,6 @@ RewriteRule ^categories$ controller/categories.php [L]
 RewriteRule ^images$ controller/images.php [L]
 RewriteRule ^images/fix$ controller/images.php?fix=Y [L]
 RewriteRule ^images/check$ controller/images.php?check=Y [L]
+
+RewriteRule ^variants/([0-9]+)$ controller/variants.php?variantid=$1 [L]
+RewriteRule ^variants$ controller/variants.php [L]
