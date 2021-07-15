@@ -75,154 +75,224 @@ if (array_key_exists("variantid", $_GET)) { // GET/PATCH variant by ID
         sendResponse(200, true, $messages);
     } elseif ($_SERVER['REQUEST_METHOD'] === 'PATCH') { // EDIT VARIANT
         if (!$userId) sendResponse(401, false, "User not authorized or not logged in.");
-        try {
+        if (array_key_exists("increase", $_GET)) { // Just increase / decrease stock by 1
 
-            if (!isset($_SERVER['CONTENT_TYPE']) || $_SERVER['CONTENT_TYPE'] !== 'application/json') {
-                sendResponse(400, false, "Content type header is not set to JSON");
+            $increase = $_GET['increase'];
+
+            if ($increase === '' || ($increase !== "UP" && $increase !== "DOWN")) sendResponse(400, false, "Variant stock filter must be UP or DOWN");
+
+            try {
+                $query = $writeDB->prepare("SELECT stock FROM $readDB->tblproductvariants WHERE id LIKE :variantid");
+                $query->bindParam(':variantid', $variantid, PDO::PARAM_INT);
+                $query->execute();
+
+                //    $query = "UPDATE `$table_variants` SET `stock` = (`stock` + 1 ) WHERE `id` = '$id'";
+
+                $rowCount = $query->rowCount();
+
+                if ($rowCount === 0) {
+                    sendResponse(404, false, "No variants found to update");
+                }
+
+                while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
+                    if ($row['stock'] < 1 && $increase === "DOWN") { // Don't decrease below 0
+                        sendResponse(405, false, "Stock cannot be less than 0");
+                    }
+                }
+
+                if ($increase === "UP") {
+                    $query = $writeDB->prepare("UPDATE $readDB->tblproductvariants SET `stock` = (`stock` + 1) WHERE id LIKE :variantid");
+                } else {
+                    $query = $writeDB->prepare("UPDATE $readDB->tblproductvariants SET `stock` = (`stock` - 1) WHERE id LIKE :variantid");
+                }
+
+                $query->bindParam(":variantid", $variantid, PDO::PARAM_INT);
+                $query->execute();
+
+                $rowCount = $query->rowCount();
+
+                if ($rowCount === 0) {
+                    sendResponse(404, false, "Variant stock not updated");
+                }
+
+                // Get updated Variant from database
+                $query = $writeDB->prepare("SELECT id, product_id, size, color, stock, upc, item, transport_id FROM $readDB->tblproductvariants WHERE id LIKE :variantid");
+                $query->bindParam(':variantid', $variantid, PDO::PARAM_INT);
+                $query->execute();
+
+                $rowCount = $query->rowCount();
+
+                if ($rowCount === 0) {
+                    sendResponse(404, false, "No variant found after update");
+                }
+
+                $variantArray = array();
+
+                while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
+                    $productVariant = new ProductVariant($userId, $row);
+                    $variantArray[] = $productVariant->returnVariantAsArray();
+                }
+
+                $returnData = array();
+                $returnData['rows_returned'] = $rowCount;
+                $returnData['variants'] = $variantArray;
+
+                sendResponse(200, true, "Variant stock updated", false, $returnData);
+            } catch (PDOException $ex) {
+                error_log("Database query error - " . $ex);
+                sendResponse(500, false, "Failed to update variant stock - check your data for errors");
             }
+            //sendResponse(200, true, "Stock changed (value given is: " . $increase . ")");
+        } else { // Update variant
+            try {
 
-            $rawPOSTData = file_get_contents('php://input');
+                if (!isset($_SERVER['CONTENT_TYPE']) || $_SERVER['CONTENT_TYPE'] !== 'application/json') {
+                    sendResponse(400, false, "Content type header is not set to JSON");
+                }
 
-            if (!$jsonData = json_decode($rawPOSTData)) {
-                sendResponse(400, false, "Request body is not valid JSON");
+                $rawPOSTData = file_get_contents('php://input');
+
+                if (!$jsonData = json_decode($rawPOSTData)) {
+                    sendResponse(400, false, "Request body is not valid JSON");
+                }
+
+                $size_updated = false;
+                $color_updated = false;
+                $stock_updated = false;
+                $upc_updated = false;
+                $item_updated = false;
+                $transport_id_updated = false;
+
+                $queryFields = "";
+
+                if (isset($jsonData->size)) {
+                    $size_updated = true;
+                    $queryFields .=  "size = :size, ";
+                }
+
+                if (isset($jsonData->color)) {
+                    $color_updated = true;
+                    $queryFields .=  "color = :color, ";
+                }
+
+                if (isset($jsonData->stock)) {
+                    $stock_updated = true;
+                    $queryFields .=  "stock = :stock, ";
+                }
+
+                if (isset($jsonData->upc)) {
+                    $upc_updated = true;
+                    $queryFields .=  "upc = :upc, ";
+                }
+
+                if (isset($jsonData->item)) {
+                    $item_updated = true;
+                    $queryFields .=  "item = :item, ";
+                }
+
+                if (isset($jsonData->transport_id)) {
+                    $transport_id_updated = true;
+                    $queryFields .=  "transport_id = :transport_id, ";
+                }
+
+
+                $queryFields = rtrim($queryFields, ", ");
+
+                if ($size_updated === false && $color_updated === false && $stock_updated === false && $upc_updated === false && $item_updated === false && $transport_id_updated === false) {
+                    sendResponse(400, false, "No variant fields provided");
+                }
+
+                $query = $writeDB->prepare("SELECT id, product_id, size, color, stock, upc, item, transport_id FROM $readDB->tblproductvariants WHERE id LIKE :variantid");
+                $query->bindParam(':variantid', $variantid, PDO::PARAM_INT);
+                $query->execute();
+
+                $rowCount = $query->rowCount();
+
+                if ($rowCount === 0) {
+                    sendResponse(404, false, "No variants found to update");
+                }
+
+                while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
+                    $productVariant = new ProductVariant($userId, $row);
+                }
+
+                $queryString = "UPDATE $writeDB->tblproductvariants SET " . $queryFields . " WHERE id = :variantid";
+                $query = $writeDB->prepare($queryString);
+
+                if ($size_updated === true) {
+                    $productVariant->setSize($jsonData->size);
+                    $up_size = $productVariant->getSize();
+                    $query->bindParam(':size', $up_size, PDO::PARAM_STR);
+                }
+
+                if ($color_updated === true) {
+                    $productVariant->setColor($jsonData->color);
+                    $up_color = $productVariant->getColor();
+                    $query->bindParam(':color', $up_color, PDO::PARAM_STR);
+                }
+
+                if ($stock_updated === true) {
+                    $productVariant->setStock($jsonData->stock);
+                    $up_stock = $productVariant->getStock();
+                    $query->bindParam(':stock', $up_stock, PDO::PARAM_STR);
+                }
+
+                if ($upc_updated === true) {
+                    $productVariant->setUpc($jsonData->upc);
+                    $up_upc = $productVariant->getUpc();
+                    $query->bindParam(':upc', $up_upc, PDO::PARAM_STR);
+                }
+
+                if ($item_updated === true) {
+                    $productVariant->setItem($jsonData->item);
+                    $up_item = $productVariant->getItem();
+                    $query->bindParam(':item', $up_item, PDO::PARAM_STR);
+                }
+
+                if ($transport_id_updated === true) {
+                    $productVariant->setTransport_id($jsonData->transport_id);
+                    $up_transport_id = $productVariant->getTransport_id();
+                    $query->bindParam(':transport_id', $up_transport_id, PDO::PARAM_STR);
+                }
+
+                $query->bindParam(":variantid", $variantid, PDO::PARAM_INT);
+                $query->execute();
+
+                $rowCount = $query->rowCount();
+
+                if ($rowCount === 0) {
+                    sendResponse(404, false, "Variant not updated");
+                }
+
+                // Get updated Variant from database
+                $query = $writeDB->prepare("SELECT id, product_id, size, color, stock, upc, item, transport_id FROM $readDB->tblproductvariants WHERE id LIKE :variantid");
+                $query->bindParam(':variantid', $variantid, PDO::PARAM_INT);
+                $query->execute();
+
+                $rowCount = $query->rowCount();
+
+                if ($rowCount === 0) {
+                    sendResponse(404, false, "No variant found after update");
+                }
+
+                $variantArray = array();
+
+                while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
+                    $productVariant = new ProductVariant($userId, $row);
+                    $variantArray[] = $productVariant->returnVariantAsArray();
+                }
+
+                $returnData = array();
+                $returnData['rows_returned'] = $rowCount;
+                $returnData['variants'] = $variantArray;
+
+                sendResponse(200, true, "Variant updated");
+            } catch (VariantException $ex) {
+                sendResponse(400, false, $ex->getMessage());
+            } catch (PDOException $ex) {
+                error_log("Database query error - " . $ex);
+                sendResponse(500, false, "Failed to update variant - check your data for errors");
             }
-
-            $size_updated = false;
-            $color_updated = false;
-            $stock_updated = false;
-            $upc_updated = false;
-            $item_updated = false;
-            $transport_id_updated = false;
-
-            $queryFields = "";
-
-            if (isset($jsonData->size)) {
-                $size_updated = true;
-                $queryFields .=  "size = :size, ";
-            }
-
-            if (isset($jsonData->color)) {
-                $color_updated = true;
-                $queryFields .=  "color = :color, ";
-            }
-
-            if (isset($jsonData->stock)) {
-                $stock_updated = true;
-                $queryFields .=  "stock = :stock, ";
-            }
-
-            if (isset($jsonData->upc)) {
-                $upc_updated = true;
-                $queryFields .=  "upc = :upc, ";
-            }
-
-            if (isset($jsonData->item)) {
-                $item_updated = true;
-                $queryFields .=  "item = :item, ";
-            }
-
-            if (isset($jsonData->transport_id)) {
-                $transport_id_updated = true;
-                $queryFields .=  "transport_id = :transport_id, ";
-            }
-
-
-            $queryFields = rtrim($queryFields, ", ");
-
-            if ($size_updated === false && $color_updated === false && $stock_updated === false && $upc_updated === false && $item_updated === false && $transport_id_updated === false) {
-                sendResponse(400, false, "No variant fields provided");
-            }
-
-            $query = $writeDB->prepare("SELECT id, product_id, size, color, stock, upc, item, transport_id FROM $readDB->tblproductvariants WHERE id LIKE :variantid");
-            $query->bindParam(':variantid', $variantid, PDO::PARAM_INT);
-            $query->execute();
-
-            $rowCount = $query->rowCount();
-
-            if ($rowCount === 0) {
-                sendResponse(404, false, "No variants found to update");
-            }
-
-            while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
-                $productVariant = new ProductVariant($userId, $row);
-            }
-
-            $queryString = "UPDATE $writeDB->tblproductvariants SET " . $queryFields . " WHERE id = :variantid";
-            $query = $writeDB->prepare($queryString);
-
-            if ($size_updated === true) {
-                $product->setSize($jsonData->size);
-                $up_size = $product->getSize();
-                $query->bindParam(':size', $up_size, PDO::PARAM_STR);
-            }
-
-            if ($color_updated === true) {
-                $product->setColor($jsonData->color);
-                $up_color = $product->getColor();
-                $query->bindParam(':color', $up_color, PDO::PARAM_STR);
-            }
-
-            if ($stock_updated === true) {
-                $product->setStock($jsonData->stock);
-                $up_stock = $product->getStock();
-                $query->bindParam(':stock', $up_stock, PDO::PARAM_STR);
-            }
-
-            if ($upc_updated === true) {
-                $product->setUpc($jsonData->upc);
-                $up_upc = $product->getUpc();
-                $query->bindParam(':upc', $up_upc, PDO::PARAM_STR);
-            }
-
-            if ($item_updated === true) {
-                $product->setItem($jsonData->item);
-                $up_item = $product->getItem();
-                $query->bindParam(':item', $up_item, PDO::PARAM_STR);
-            }
-
-            if ($transport_id_updated === true) {
-                $product->setTransport_id($jsonData->transport_id);
-                $up_transport_id = $product->getTransport_id();
-                $query->bindParam(':transport_id', $up_transport_id, PDO::PARAM_STR);
-            }
-
-            $query->bindParam(":variantid", $variantid, PDO::PARAM_INT);
-            $query->execute();
-
-            $rowCount = $query->rowCount();
-
-            if ($rowCount === 0) {
-                sendResponse(404, false, "Variant not updated");
-            }
-
-            // Get updated Variant from database
-            $query = $writeDB->prepare("SELECT id, product_id, size, color, stock, upc, item, transport_id FROM $readDB->tblproductvariants WHERE id LIKE :variantid");
-            $query->bindParam(':variantid', $variantid, PDO::PARAM_INT);
-            $query->execute();
-
-            $rowCount = $query->rowCount();
-
-            if ($rowCount === 0) {
-                sendResponse(404, false, "No variant found after update");
-            }
-
-            $variantArray = array();
-
-            while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
-                $productVariant = new ProductVariant($userId, $row);
-                $variantArray[] = $productVariant->returnVariantAsArray();
-            }
-
-            $returnData = array();
-            $returnData['rows_returned'] = $rowCount;
-            $returnData['variants'] = $variantArray;
-
-            sendResponse(200, true, "Variant updated");
-        } catch (VariantException $ex) {
-            sendResponse(400, false, $ex->getMessage());
-        } catch (PDOException $ex) {
-            error_log("Database query error - " . $ex);
-            sendResponse(500, false, "Failed to update variant - check your data for errors");
         }
     } else {
         sendResponse(405, false, "Request method not allowed");
