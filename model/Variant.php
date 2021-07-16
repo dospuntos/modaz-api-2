@@ -116,7 +116,7 @@ class ProductVariant
 
     public function setTransport_id($id)
     {
-        if (($id !== null) && (!is_numeric($id) || $id < 0 || $id > 9223372036854775807 || $this->_id !== null)) {
+        if (($id !== null) && (!is_numeric($id) || $id < 0 || $id > 9223372036854775807 || $this->_transport_id !== null)) {
             throw new VariantException("Transport ID error");
         }
 
