@@ -1,55 +1,93 @@
 <?php
 
-// Get Joomla configuration
-$parentparentdir = basename(dirname(dirname(__FILE__)));
-if ($parentparentdir === "2") { // Live API v2 - include config file from Joomla
-    include_once('../../../configuration.php');
-} elseif ($parentparentdir === "2s") { // Staging API v2 on server, include config file for staging site
-    include_once('../../../staging/configuration.php');
+// Get configuration
+
+$projectRoot = dirname(__DIR__);
+
+$localConfig = $projectRoot . '/config/config.local.php';
+
+$documentRoot = rtrim($_SERVER['DOCUMENT_ROOT'] ?? '', '/\\');
+
+$serverConfig = $documentRoot !== ''
+    ? dirname($documentRoot) . '/config/config.php'
+    : null;
+
+// Prefer local configuration, otherwise use server configuration
+if (is_file($localConfig)) {
+    $configFile = $localConfig;
 } else {
-    include_once('../configuration.php');
+    $configFile = $serverConfig;
+}
+
+if (!$configFile || !is_readable($configFile)) {
+    throw new RuntimeException('Configuration file not found');
+}
+
+$config = require $configFile;
+
+if (!is_array($config)) {
+    throw new RuntimeException('Invalid configuration file');
 }
 
 class DB
 {
-    private static $writeDBConnection;
-    private static $readDBConnection;
+    private static $writeDBConnection = null;
+    private static $readDBConnection = null;
+
+    private static function createConnection()
+    {
+        global $config;
+
+        $prefix = $config['db_prefix'];
+
+        if (!preg_match('/^[a-zA-Z0-9_]*$/', $prefix)) {
+            throw new RuntimeException('Invalid database prefix');
+        }
+
+        $dsn = 'mysql:host=' . $config['db_host']
+            . ';dbname=' . $config['db_name']
+            . ';charset=utf8mb4';
+
+        $db = new PDO(
+            $dsn,
+            $config['db_user'],
+            $config['db_pass'],
+            [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_EMULATE_PREPARES => false,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+            ]
+        );
+
+        // Table names
+        $db->tblusers = $prefix . 'modaz_users';
+        $db->tblsessions = $prefix . 'modaz_sessions';
+        $db->tblproducts = $prefix . 'modaz_products';
+        $db->tblproductvariants = $prefix . 'modaz_product_variants';
+        $db->tblcategories = $prefix . 'categories';
+
+        // Image directory
+        $db->img_folder = rtrim($config['image_path'], '/\\')
+            . DIRECTORY_SEPARATOR;
+
+        return $db;
+    }
 
     public static function connectWriteDB()
     {
-        $var_cls = new JConfig(); // object of the class
         if (self::$writeDBConnection === null) {
-            self::$writeDBConnection = new PDO('mysql:host=' . $var_cls->host . ';dbname=' . $var_cls->db . ';charset=utf8', $var_cls->user, $var_cls->password);
-            self::$writeDBConnection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            self::$writeDBConnection->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
-
-            // set table names
-            self::$writeDBConnection->tblusers = $var_cls->dbprefix . "modaz_users";
-            self::$writeDBConnection->tblsessions = $var_cls->dbprefix . "modaz_sessions";
-            self::$writeDBConnection->tblproducts = $var_cls->dbprefix . "modaz_products";
-            self::$writeDBConnection->tblproductvariants = $var_cls->dbprefix . "modaz_product_variants";
-            self::$writeDBConnection->tblcategories = $var_cls->dbprefix . "categories";
-            self::$writeDBConnection->img_folder = __DIR__ . "/../modaz_backup/images/products/";
+            self::$writeDBConnection = self::createConnection();
         }
+
         return self::$writeDBConnection;
     }
 
     public static function connectReadDB()
     {
-        $var_cls = new JConfig(); // object of the class
         if (self::$readDBConnection === null) {
-            self::$readDBConnection = new PDO('mysql:host=' . $var_cls->host . ';dbname=' . $var_cls->db . ';charset=utf8', $var_cls->user, $var_cls->password);
-            self::$readDBConnection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            self::$readDBConnection->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
-
-            // set table names
-            self::$readDBConnection->tblusers = $var_cls->dbprefix . "modaz_users";
-            self::$readDBConnection->tblsessions = $var_cls->dbprefix . "modaz_sessions";
-            self::$readDBConnection->tblproducts = $var_cls->dbprefix . "modaz_products";
-            self::$readDBConnection->tblproductvariants = $var_cls->dbprefix . "modaz_product_variants";
-            self::$readDBConnection->tblcategories = $var_cls->dbprefix . "categories";
-            self::$writeDBConnection->img_folder = __DIR__ . "/../modaz_backup/images/products/";
+            self::$readDBConnection = self::createConnection();
         }
+
         return self::$readDBConnection;
     }
 }

@@ -439,8 +439,11 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
                 $product = new Product($userId, $row);
                 $productsArray[] = $product->returnProductAsArray();
             }
-            $returnData['rows_returned'] = $rowCount;
-            //$returnData['products'] = $productsArray;
+            $joinedProducts = joinProductsById($productsArray);
+
+            $returnData['rows_returned'] = count($joinedProducts);
+            $returnData['products'] = $joinedProducts;
+
             sendResponse(200, true, null, true, $returnData);
         } catch (ProductException $ex) {
             sendResponse(500, false, $ex->getMessage());
@@ -526,7 +529,8 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
             $rowCount = $query->rowCount();
             while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
                 // Skip if no userId (not logged in) and product is unpublished
-                if (!$userId && $row['state'] !== 1) continue;
+                // Todo: Filter directly in DB request, e.g. 'WHERE p.id = v.product_id AND p.state = 1'
+                if (!$userId && (int) $row['state'] !== 1) continue;
 
                 $product = new Product($userId, $row);
                 $productsArray[] = $product->returnProductAsArray();

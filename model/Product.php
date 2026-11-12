@@ -1,8 +1,6 @@
 <?php
 
-class ProductException extends Exception
-{
-}
+class ProductException extends Exception {}
 
 class Product
 {
@@ -205,7 +203,7 @@ class Product
 
     public function setName($name)
     {
-        if (strlen($name) < 0 || strlen($name) > 255) {
+        if (!is_string($name) || trim($name) === '' || strlen($name) > 255) {
             throw new ProductException("Product name error");
         }
 
@@ -239,25 +237,43 @@ class Product
         //$jsonData = json_decode(strVal($images));
         //$this->_images = $images;
         //die(var_dump(json_decode('[{"image":"zumba-for-all-muscle-tanks-9-pk-multi.jpg","color":"multi"}]')));
-        if (!$jsonData = json_decode($images)) {
+        $jsonData = json_decode($images);
+
+        if (json_last_error() !== JSON_ERROR_NONE || !is_array($jsonData)) {
             //$this->_images = array((object)[{"image" : "default.png", "color" : "bold black"}]);
             throw new ProductException("Not a valid JSON format for images for product ID - " . $this->_id . " (" . json_encode($images) . ")");
-        } else {
-            $this->_images = $jsonData;
         }
+
+        $this->_images = $jsonData;
     }
 
     public function setCategory($category)
     {
+        if (!is_string($category) || trim($category) === '') {
+            throw new ProductException("Product category error");
+        }
+
+        $categories = explode(',', $category);
+
+        foreach ($categories as $id) {
+            if (
+                filter_var(trim($id), FILTER_VALIDATE_INT) === false
+                || (int) $id < 1
+            ) {
+                throw new ProductException("Product category error");
+            }
+        }
+
         $this->_category = $category;
     }
 
     public function setFeatured($featured)
     {
-        if (!(int)$featured === 0 || !(int)$featured === 1) {
+        if (!in_array($featured, [0, 1, '0', '1', false, true], true)) {
             throw new ProductException("Featured flag error");
         }
-        $this->_featured = $featured;
+
+        $this->_featured = (int) $featured;
     }
 
     public function setOrderdate($orderdate)
@@ -355,7 +371,7 @@ class Product
         $this->_country = $country;
     }
 
-    public function setVid($vid)
+    public function setVid(int $vid)
     {
         $this->_vid = $vid;
     }
@@ -381,7 +397,11 @@ class Product
 
     public function setStock($stock)
     {
-        $this->_stock = $stock;
+        if (filter_var($stock, FILTER_VALIDATE_INT) === false || $stock < 0) {
+            throw new ProductException("Product stock error");
+        }
+
+        $this->_stock = (int) $stock;
     }
 
     public function returnProductAsArray()
