@@ -1,5 +1,5 @@
 <?php
-
+date_default_timezone_set('UTC');
 // Get configuration
 
 $projectRoot = dirname(__DIR__);
@@ -58,6 +58,8 @@ class DB
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
             ]
         );
+
+        $db->exec("SET time_zone = '+00:00'");
 
         // Table names
         $db->tblusers = $prefix . 'modaz_users';

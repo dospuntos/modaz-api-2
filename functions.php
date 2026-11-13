@@ -80,6 +80,7 @@ function checkAuthStatusAndReturnUserID($writeDB)
     }
     // End auth script
 }
+
 function simpleCheckAuthStatusAndReturnUserID($writeDB)
 {
     // BEGIN AUTH SCRIPT
@@ -112,8 +113,18 @@ function simpleCheckAuthStatusAndReturnUserID($writeDB)
         $returned_useractive = $row['useractive'];
         $returned_loginattempts = $row['loginattempts'];
 
-        if ($returned_useractive !== "Y" || $returned_loginattempts >= 3 || strtotime($returned_accesstokenexpiry) < (time() - 3600)) {
-            //sendResponse(401, false, "User account not active");
+        $expiry = DateTimeImmutable::createFromFormat(
+            '!Y-m-d H:i:s',
+            $returned_accesstokenexpiry,
+            new DateTimeZone('UTC')
+        );
+
+        if (
+            $returned_useractive !== "Y" ||
+            $returned_loginattempts >= 3 ||
+            $expiry === false ||
+            $expiry->getTimestamp() <= time()
+        ) {
             return 0;
         }
 
@@ -206,4 +217,17 @@ function isValidBarcode($barcode)
     $sum = $sum_even + $sum_odd;
     $sum_rounded_up = ceil($sum / 10) * 10;
     return ($check == ($sum_rounded_up - $sum));
+}
+
+function generateAlias($name)
+{
+    $alias = mb_strtolower(trim($name));
+
+    // Transliterate accented characters
+    $alias = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $alias);
+
+    // Replace non-alphanumeric characters with hyphens
+    $alias = preg_replace('/[^a-z0-9]+/', '-', $alias);
+
+    return trim($alias, '-');
 }
