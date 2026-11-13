@@ -111,22 +111,8 @@ class Category
 
     public function setAlias($alias)
     {
-        error_log('Alias: ' . var_export($alias, true));
-        error_log('Type: ' . gettype($alias));
-        error_log('Length: ' . mb_strlen($alias, 'UTF-8'));
-        error_log('Is string: ' . (is_string($alias) ? 'yes' : 'no'));
-        error_log('Trimmed: ' . var_export(trim($alias), true));
-
-        if (!is_string($alias)) {
-            throw new CategoryException("Category alias is not a string");
-        }
-
-        if (trim($alias) === '') {
-            throw new CategoryException("Category alias is empty");
-        }
-
-        if (mb_strlen($alias, 'UTF-8') > 255) {
-            throw new CategoryException("Category alias exceeds 255 characters");
+        if (!is_string($alias) || trim($alias) === '' || mb_strlen($alias) > 255) {
+            throw new CategoryException("Category alias error");
         }
 
         $this->_alias = trim($alias);

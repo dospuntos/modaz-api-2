@@ -29,10 +29,28 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
     if ($_SERVER['REQUEST_METHOD'] === 'GET') { // Return product by ID
 
         try {
-            $query = $readDB->prepare("SELECT p.id, p.name, p.state, p.description, p.images, p.category, p.featured, p.orderdate, p.release_date, p.season, p.wholesaleprice, p.msrp, p.price, p.zinprice, p.price_discount, p.weight, p.composition, p.manufacturer, p.country, v.id AS vid, v.product_id, v.upc, v.size, v.color, v.stock FROM $readDB->tblproducts p, $readDB->tblproductvariants v WHERE p.id LIKE :productid AND v.product_id LIKE :productid2 AND p.state LIKE 1");
-
+            $query = $readDB->prepare("
+                SELECT
+                    p.id, p.name, p.state, p.description, p.images,
+                    COALESCE(
+                        (
+                            SELECT GROUP_CONCAT(pc.category_id ORDER BY pc.category_id SEPARATOR ',')
+                            FROM `$readDB->tblproductcategories` pc
+                            WHERE pc.product_id = p.id
+                        ),
+                        ''
+                    ) AS category,
+                    p.featured, p.orderdate, p.release_date, p.season,
+                    p.wholesaleprice, p.msrp, p.price, p.zinprice,
+                    p.price_discount, p.weight, p.composition, p.manufacturer,
+                    p.country, v.id AS vid, v.product_id, v.upc, v.size,
+                    v.color, v.stock
+                FROM $readDB->tblproducts p
+                JOIN $readDB->tblproductvariants v ON v.product_id = p.id
+                WHERE p.id = :productid
+                AND p.state = 1
+            ");
             $query->bindParam(':productid', $productid, PDO::PARAM_INT);
-            $query->bindParam(':productid2', $productid, PDO::PARAM_INT);
             $query->execute();
 
             $rowCount = $query->rowCount();
@@ -167,7 +185,6 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
 
             if (isset($jsonData->category)) {
                 $category_updated = true;
-                $queryFields .=  "category = :category, ";
             }
 
             if (isset($jsonData->description)) {
@@ -236,7 +253,19 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
                 sendResponse(400, false, "No product fields provided");
             }
 
-            $query = $writeDB->prepare("SELECT * FROM $writeDB->tblproducts WHERE id = :productid");
+            $query = $writeDB->prepare("
+                SELECT p.*,
+                    COALESCE(
+                        (
+                            SELECT GROUP_CONCAT(pc.category_id ORDER BY pc.category_id SEPARATOR ',')
+                            FROM `$writeDB->tblproductcategories` pc
+                            WHERE pc.product_id = p.id
+                        ),
+                        ''
+                    ) AS category
+                FROM $writeDB->tblproducts p
+                WHERE p.id = :productid
+            ");
             $query->bindParam(':productid', $productid, PDO::PARAM_INT);
             $query->execute();
 
@@ -249,145 +278,149 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
             while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
                 $product = new Product($userId, $row);
             }
+            if ($queryFields !== '') {
+                $queryString = "UPDATE $writeDB->tblproducts SET " . $queryFields . " WHERE id = :productid";
+                $query = $writeDB->prepare($queryString);
 
-            $queryString = "UPDATE $writeDB->tblproducts SET " . $queryFields . " WHERE id = :productid";
-            $query = $writeDB->prepare($queryString);
+                if ($state_updated === true) {
+                    $product->setState($jsonData->state);
+                    $up_state = $product->getState();
+                    $query->bindParam(':state', $up_state, PDO::PARAM_STR);
+                }
 
-            if ($state_updated === true) {
-                $product->setState($jsonData->state);
-                $up_state = $product->getState();
-                $query->bindParam(':state', $up_state, PDO::PARAM_STR);
+                if ($release_date_updated === true) {
+                    $product->setRelease_date($jsonData->release_date);
+                    $up_release_date = $product->getRelease_date();
+                    $query->bindParam(':release_date', $up_release_date, PDO::PARAM_STR);
+                }
+
+                if ($orderdate_updated === true) {
+                    $product->setOrderdate($jsonData->orderdate);
+                    $up_orderdate = $product->getOrderdate();
+                    $query->bindParam(':orderdate', $up_orderdate, PDO::PARAM_STR);
+                }
+
+                if ($season_updated === true) {
+                    $product->setSeason($jsonData->season);
+                    $up_season = $product->getSeason();
+                    $query->bindParam(':season', $up_season, PDO::PARAM_STR);
+                }
+
+                if ($featured_updated === true) {
+                    $product->setFeatured($jsonData->featured);
+                    $up_featured = $product->getFeatured();
+                    $query->bindParam(':featured', $up_featured, PDO::PARAM_STR);
+                }
+
+                if ($name_updated === true) {
+                    $product->setName($jsonData->name);
+                    $up_name = $product->getName();
+                    $query->bindParam(':name', $up_name, PDO::PARAM_STR);
+                }
+
+                if ($images_updated === true) {
+                    //$product->setImages($jsonData->images);
+                    //$up_images = json_encode($product->getImages());
+                    $up_images = json_encode($jsonData->images);
+                    $query->bindParam(':images', $up_images, PDO::PARAM_STR);
+                }
+
+                if ($description_updated === true) {
+                    $product->setDescription($jsonData->description);
+                    $up_description = $product->getDescription();
+                    $query->bindParam(':description', $up_description, PDO::PARAM_STR);
+                }
+
+                if ($wholesaleprice_updated === true) {
+                    $product->setWholesaleprice($jsonData->wholesaleprice, $userId);
+                    $up_wholesaleprice = $product->getWholesaleprice();
+                    $query->bindParam(':wholesaleprice', $up_wholesaleprice, PDO::PARAM_STR);
+                }
+
+                if ($msrp_updated === true) {
+                    $product->setMsrp($jsonData->msrp, $userId);
+                    $up_msrp = $product->getMsrp();
+                    $query->bindParam(':msrp', $up_msrp, PDO::PARAM_INT);
+                }
+
+                if ($price_updated === true) {
+                    $product->setPrice($jsonData->price);
+                    $up_price = $product->getPrice();
+                    $query->bindParam(':price', $up_price, PDO::PARAM_INT);
+                }
+
+                if ($zinprice_updated === true) {
+                    $product->setZinprice($jsonData->zinprice);
+                    $up_zinprice = $product->getZinprice();
+                    $query->bindParam(':zinprice', $up_zinprice, PDO::PARAM_INT);
+                }
+
+                if ($price_discount_updated === true) {
+                    $product->setPriceDiscount($jsonData->price_discount);
+                    $up_price_discount = $product->getPriceDiscount();
+                    $query->bindParam(':price_discount', $up_price_discount, PDO::PARAM_INT);
+                }
+
+                if ($tags_updated === true) {
+                    $product->setTags($jsonData->tags);
+                    $up_tags = $product->getTags();
+                    $query->bindParam(':tags', $up_tags, PDO::PARAM_STR);
+                }
+
+                if ($notes_updated === true) {
+                    $product->setNotes($jsonData->notes);
+                    $up_notes = $product->getNotes();
+                    $query->bindParam(':notes', $up_notes, PDO::PARAM_STR);
+                }
+
+                if ($weight_updated === true) {
+                    $product->setWeight($jsonData->weight);
+                    $up_weight = $product->getWeight();
+                    $query->bindParam(':weight', $up_weight, PDO::PARAM_STR);
+                }
+
+                if ($composition_updated === true) {
+                    $product->setComposition($jsonData->composition);
+                    $up_composition = $product->getComposition();
+                    $query->bindParam(':composition', $up_composition, PDO::PARAM_STR);
+                }
+
+                if ($manufacturer_updated === true) {
+                    $product->setManufacturer($jsonData->manufacturer);
+                    $up_manufacturer = $product->getManufacturer();
+                    $query->bindParam(':manufacturer', $up_manufacturer, PDO::PARAM_STR);
+                }
+
+                if ($country_updated === true) {
+                    $product->setCountry($jsonData->country);
+                    $up_country = $product->getCountry();
+                    $query->bindParam(':country', $up_country, PDO::PARAM_STR);
+                }
+
+                $query->bindParam(":productid", $productid, PDO::PARAM_INT);
+                $query->execute();
+
+
+                $rowCount = $query->rowCount();
+
+                if ($rowCount === 0) {
+                    sendResponse(404, false, "No changes made to product");
+                }
+
+                // Get updated Product from database
+                $query = $writeDB->prepare("
+                SELECT p.*,
+                    COALESCE(
+                        (
+                            SELECT GROUP_CONCAT(pc.category_id ORDER BY pc.category_id SEPARATOR ',')
+                            FROM `$writeDB->tblproductcategories` pc
+                            WHERE pc.product_id = p.id
+                        ),
+                        ''
+                    ) AS category FROM $writeDB->tblproducts p WHERE p.id = :productid");
+                $query->bindParam(':productid', $productid, PDO::PARAM_INT);
+                $query->execute();
             }
-
-            if ($release_date_updated === true) {
-                $product->setRelease_date($jsonData->release_date);
-                $up_release_date = $product->getRelease_date();
-                $query->bindParam(':release_date', $up_release_date, PDO::PARAM_STR);
-            }
-
-            if ($orderdate_updated === true) {
-                $product->setOrderdate($jsonData->orderdate);
-                $up_orderdate = $product->getOrderdate();
-                $query->bindParam(':orderdate', $up_orderdate, PDO::PARAM_STR);
-            }
-
-            if ($season_updated === true) {
-                $product->setSeason($jsonData->season);
-                $up_season = $product->getSeason();
-                $query->bindParam(':season', $up_season, PDO::PARAM_STR);
-            }
-
-            if ($featured_updated === true) {
-                $product->setFeatured($jsonData->featured);
-                $up_featured = $product->getFeatured();
-                $query->bindParam(':featured', $up_featured, PDO::PARAM_STR);
-            }
-
-            if ($name_updated === true) {
-                $product->setName($jsonData->name);
-                $up_name = $product->getName();
-                $query->bindParam(':name', $up_name, PDO::PARAM_STR);
-            }
-
-            if ($images_updated === true) {
-                //$product->setImages($jsonData->images);
-                //$up_images = json_encode($product->getImages());
-                $up_images = json_encode($jsonData->images);
-                $query->bindParam(':images', $up_images, PDO::PARAM_STR);
-            }
-
-            if ($category_updated === true) {
-                $product->setCategory($jsonData->category);
-                $up_category = $product->getCategory();
-                $query->bindParam(':category', $up_category, PDO::PARAM_STR);
-            }
-
-            if ($description_updated === true) {
-                $product->setDescription($jsonData->description);
-                $up_description = $product->getDescription();
-                $query->bindParam(':description', $up_description, PDO::PARAM_STR);
-            }
-
-            if ($wholesaleprice_updated === true) {
-                $product->setWholesaleprice($jsonData->wholesaleprice, $userId);
-                $up_wholesaleprice = $product->getWholesaleprice();
-                $query->bindParam(':wholesaleprice', $up_wholesaleprice, PDO::PARAM_STR);
-            }
-
-            if ($msrp_updated === true) {
-                $product->setMsrp($jsonData->msrp, $userId);
-                $up_msrp = $product->getMsrp();
-                $query->bindParam(':msrp', $up_msrp, PDO::PARAM_INT);
-            }
-
-            if ($price_updated === true) {
-                $product->setPrice($jsonData->price);
-                $up_price = $product->getPrice();
-                $query->bindParam(':price', $up_price, PDO::PARAM_INT);
-            }
-
-            if ($zinprice_updated === true) {
-                $product->setZinprice($jsonData->zinprice);
-                $up_zinprice = $product->getZinprice();
-                $query->bindParam(':zinprice', $up_zinprice, PDO::PARAM_INT);
-            }
-
-            if ($price_discount_updated === true) {
-                $product->setPriceDiscount($jsonData->price_discount);
-                $up_price_discount = $product->getPriceDiscount();
-                $query->bindParam(':price_discount', $up_price_discount, PDO::PARAM_INT);
-            }
-
-            if ($tags_updated === true) {
-                $product->setTags($jsonData->tags);
-                $up_tags = $product->getTags();
-                $query->bindParam(':tags', $up_tags, PDO::PARAM_STR);
-            }
-
-            if ($notes_updated === true) {
-                $product->setNotes($jsonData->notes);
-                $up_notes = $product->getNotes();
-                $query->bindParam(':notes', $up_notes, PDO::PARAM_STR);
-            }
-
-            if ($weight_updated === true) {
-                $product->setWeight($jsonData->weight);
-                $up_weight = $product->getWeight();
-                $query->bindParam(':weight', $up_weight, PDO::PARAM_STR);
-            }
-
-            if ($composition_updated === true) {
-                $product->setComposition($jsonData->composition);
-                $up_composition = $product->getComposition();
-                $query->bindParam(':composition', $up_composition, PDO::PARAM_STR);
-            }
-
-            if ($manufacturer_updated === true) {
-                $product->setManufacturer($jsonData->manufacturer);
-                $up_manufacturer = $product->getManufacturer();
-                $query->bindParam(':manufacturer', $up_manufacturer, PDO::PARAM_STR);
-            }
-
-            if ($country_updated === true) {
-                $product->setCountry($jsonData->country);
-                $up_country = $product->getCountry();
-                $query->bindParam(':country', $up_country, PDO::PARAM_STR);
-            }
-
-            $query->bindParam(":productid", $productid, PDO::PARAM_INT);
-            $query->execute();
-
-            $rowCount = $query->rowCount();
-
-            if ($rowCount === 0) {
-                sendResponse(404, false, "No changes made to product");
-            }
-
-            // Get updated Product from database
-            $query = $writeDB->prepare("SELECT * FROM $writeDB->tblproducts WHERE id = :productid");
-            $query->bindParam(':productid', $productid, PDO::PARAM_INT);
-            $query->execute();
-
             $rowCount = $query->rowCount();
 
             if ($rowCount === 0) {
@@ -399,6 +432,44 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
             while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
                 $product = new Product($userId, $row);
                 $productArray[] = $product->returnProductAsArray();
+            }
+
+            $categoryIds = [];
+
+            if ($category_updated) {
+                $categoryValue = $jsonData->category;
+
+                if ($categoryValue !== null && $categoryValue !== '') {
+                    if (!is_string($categoryValue)) {
+                        sendResponse(400, false, "Invalid product category format");
+                    }
+
+                    foreach (explode(',', $categoryValue) as $id) {
+                        $id = trim($id);
+
+                        if (!ctype_digit($id) || (int)$id < 1) {
+                            sendResponse(400, false, "Invalid product category ID");
+                        }
+
+                        $categoryIds[] = (int)$id;
+                    }
+
+                    $categoryIds = array_values(array_unique($categoryIds));
+                }
+
+                // Verify that all supplied categories exist
+                if ($categoryIds) {
+                    $placeholders = implode(',', array_fill(0, count($categoryIds), '?'));
+
+                    $query = $writeDB->prepare("SELECT id FROM $writeDB->tblcategories WHERE id IN ($placeholders)");
+                    $query->execute($categoryIds);
+
+                    $existingIds = $query->fetchAll(PDO::FETCH_COLUMN);
+
+                    if (count($existingIds) !== count($categoryIds)) {
+                        sendResponse(400, false, "One or more product categories do not exist");
+                    }
+                }
             }
 
             $returnData = array();
@@ -484,7 +555,15 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
 
             $offset = ($page == 1 ? 0 : ($limitPerPage * ($page - 1)));
 
-            $query = $readDB->prepare("SELECT p.id, p.name, p.state, p.description, p.images, p.category, p.featured, p.orderdate, p.release_date, p.season, p.wholesaleprice, p.msrp, p.price, p.zinprice, p.price_discount, p.weight, p.composition, p.manufacturer, p.country, v.id AS vid, v.product_id, v.upc, v.size, v.color, v.stock FROM $readDB->tblproducts p, $readDB->tblproductvariants v WHERE p.id = v.product_id ORDER BY p.name ASC LIMIT :pglimit OFFSET :offset");
+            $query = $readDB->prepare("SELECT p.id, p.name, p.state, p.description, p.images,
+            COALESCE(
+                (
+                    SELECT GROUP_CONCAT(pc.category_id ORDER BY pc.category_id SEPARATOR ',')
+                    FROM `$readDB->tblproductcategories` pc
+                    WHERE pc.product_id = p.id
+                ),
+                ''
+            ) AS category, p.featured, p.orderdate, p.release_date, p.season, p.wholesaleprice, p.msrp, p.price, p.zinprice, p.price_discount, p.weight, p.composition, p.manufacturer, p.country, v.id AS vid, v.product_id, v.upc, v.size, v.color, v.stock FROM $readDB->tblproducts p, $readDB->tblproductvariants v WHERE p.id = v.product_id ORDER BY p.name ASC LIMIT :pglimit OFFSET :offset");
 
             $query->bindParam(':pglimit', $limitPerPage, PDO::PARAM_INT);
             $query->bindParam(':offset', $offset, PDO::PARAM_INT);
@@ -521,7 +600,27 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
 
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         try {
-            $query = $readDB->prepare("SELECT p.id, p.name, p.state, p.description, p.images, p.category, p.featured, p.orderdate, p.release_date, p.season, p.wholesaleprice, p.msrp, p.price, p.zinprice, p.price_discount, p.weight, p.composition, p.manufacturer, p.country, v.id AS vid, v.product_id, v.upc, v.size, v.color, v.stock FROM $readDB->tblproducts p, $readDB->tblproductvariants v WHERE p.id = v.product_id ORDER BY p.name ASC");
+            //$query = $readDB->prepare("SELECT p.id, p.name, p.state, p.description, p.images, p.category, p.featured, p.orderdate, p.release_date, p.season, p.wholesaleprice, p.msrp, p.price, p.zinprice, p.price_discount, p.weight, p.composition, p.manufacturer, p.country, v.id AS vid, v.product_id, v.upc, v.size, v.color, v.stock FROM $readDB->tblproducts p, $readDB->tblproductvariants v WHERE p.id = v.product_id ORDER BY p.name ASC");
+            $query = $readDB->prepare("
+                SELECT
+                    p.id, p.name, p.state, p.description, p.images,
+                    COALESCE(
+                        (
+                            SELECT GROUP_CONCAT(pc.category_id ORDER BY pc.category_id SEPARATOR ',')
+                            FROM `$readDB->tblproductcategories` pc
+                            WHERE pc.product_id = p.id
+                        ),
+                        ''
+                    ) AS category,
+                    p.featured, p.orderdate, p.release_date, p.season,
+                    p.wholesaleprice, p.msrp, p.price, p.zinprice,
+                    p.price_discount, p.weight, p.composition, p.manufacturer,
+                    p.country, v.id AS vid, v.product_id, v.upc, v.size,
+                    v.color, v.stock
+                FROM $readDB->tblproducts p
+                JOIN $readDB->tblproductvariants v ON v.product_id = p.id
+            ");
+
             $query->execute();
 
             $productsArray = array();
@@ -588,6 +687,39 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
             $name = $newProduct->getName();
             $images = json_encode($newProduct->getImages());
             $category = $newProduct->getCategory();
+            $categoryIds = [];
+
+            if ($category !== null && $category !== '') {
+                if (!is_string($category)) {
+                    sendResponse(400, false, "Invalid product category format");
+                }
+
+                foreach (explode(',', $category) as $id) {
+                    $id = trim($id);
+
+                    if (!ctype_digit($id) || (int)$id < 1) {
+                        sendResponse(400, false, "Invalid product category ID");
+                    }
+
+                    $categoryIds[] = (int)$id;
+                }
+
+                $categoryIds = array_values(array_unique($categoryIds));
+            }
+
+            // Verify that all supplied categories exist
+            if ($categoryIds) {
+                $placeholders = implode(',', array_fill(0, count($categoryIds), '?'));
+
+                $query = $writeDB->prepare("SELECT id FROM $writeDB->tblcategories WHERE id IN ($placeholders)");
+                $query->execute($categoryIds);
+
+                $existingIds = $query->fetchAll(PDO::FETCH_COLUMN);
+
+                if (count($existingIds) !== count($categoryIds)) {
+                    sendResponse(400, false, "One or more product categories do not exist");
+                }
+            }
             $description = $newProduct->getDescription();
             $wholesaleprice = $newProduct->getWholesaleprice();
             $msrp = $newProduct->getMsrp();
@@ -599,7 +731,22 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
             $manufacturer = $newProduct->getManufacturer();
             $country = $newProduct->getCountry();
 
-            $query = $writeDB->prepare("INSERT INTO $readDB->tblproducts (state, release_date, orderdate, season, featured, name, images, category, description, wholesaleprice, msrp, price, zinprice, price_discount, weight, composition, manufacturer, country) VALUES (:state, :release_date, :orderdate, :season, :featured, :name, :images, :category, :description, :wholesaleprice, :msrp, :price, :zinprice, :price_discount, :weight, :composition, :manufacturer, :country)");
+            $query = $writeDB->prepare("
+                INSERT INTO $writeDB->tblproducts
+                (
+                    state, release_date, orderdate, season, featured,
+                    name, images, description, wholesaleprice, msrp,
+                    price, zinprice, price_discount, weight, composition,
+                    manufacturer, country
+                )
+                VALUES
+                (
+                    :state, :release_date, :orderdate, :season, :featured,
+                    :name, :images, :description, :wholesaleprice, :msrp,
+                    :price, :zinprice, :price_discount, :weight, :composition,
+                    :manufacturer, :country
+                )
+            ");
             $query->bindParam(':state', $state, PDO::PARAM_INT);
             $query->bindParam(':release_date', $release_date, PDO::PARAM_STR);
             $query->bindParam(':orderdate', $orderdate, PDO::PARAM_STR);
@@ -607,7 +754,6 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
             $query->bindParam(':featured', $featured, PDO::PARAM_STR);
             $query->bindParam(':name', $name, PDO::PARAM_STR);
             $query->bindParam(':images', $images, PDO::PARAM_STR);
-            $query->bindParam(':category', $category, PDO::PARAM_STR);
             $query->bindParam(':description', $description, PDO::PARAM_STR);
             $query->bindParam(':wholesaleprice', $wholesaleprice, PDO::PARAM_STR);
             $query->bindParam(':msrp', $msrp, PDO::PARAM_INT);
@@ -625,6 +771,22 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
             if ($rowCount === 0) sendResponse(500, false, "Failed to create main product");
 
             $lastProductID = $writeDB->lastInsertId();
+
+            // Associate product with categories
+            if ($categoryIds) {
+                $query = $writeDB->prepare("
+                    INSERT INTO `$writeDB->tblproductcategories`
+                        (product_id, category_id)
+                    VALUES
+                        (:product_id, :category_id)
+                ");
+
+                foreach ($categoryIds as $categoryId) {
+                    $query->bindValue(':product_id', $lastProductID, PDO::PARAM_INT);
+                    $query->bindValue(':category_id', $categoryId, PDO::PARAM_INT);
+                    $query->execute();
+                }
+            }
 
             // Create a product variant
             $size = $newProduct->getSize();
@@ -648,7 +810,15 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
 
             if ($rowCount === 0) sendResponse(500, false, "Failed to create product variant");
 
-            $query = $readDB->prepare("SELECT p.id, p.name, p.state, p.description, p.images, p.category, p.featured, p.orderdate, p.release_date, p.season, p.wholesaleprice, p.msrp, p.price, p.zinprice, p.price_discount, p.weight, p.composition, p.manufacturer, p.country, v.id AS vid, v.product_id, v.upc, v.size, v.color, v.stock FROM $readDB->tblproducts p, $readDB->tblproductvariants v WHERE p.id LIKE :productid AND v.product_id LIKE :productid2");
+            $query = $readDB->prepare("SELECT p.id, p.name, p.state, p.description, p.images,
+            COALESCE(
+                (
+                    SELECT GROUP_CONCAT(pc.category_id ORDER BY pc.category_id SEPARATOR ',')
+                    FROM `$readDB->tblproductcategories` pc
+                    WHERE pc.product_id = p.id
+                ),
+                ''
+            ) AS category, p.featured, p.orderdate, p.release_date, p.season, p.wholesaleprice, p.msrp, p.price, p.zinprice, p.price_discount, p.weight, p.composition, p.manufacturer, p.country, v.id AS vid, v.product_id, v.upc, v.size, v.color, v.stock FROM $readDB->tblproducts p, $readDB->tblproductvariants v WHERE p.id LIKE :productid AND v.product_id LIKE :productid2");
             $query->bindParam(':productid', $lastProductID, PDO::PARAM_INT);
             $query->bindParam(':productid2', $lastProductID, PDO::PARAM_INT);
             $query->execute();

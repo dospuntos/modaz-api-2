@@ -55,11 +55,19 @@ class Product
         $this->setComposition(isset($row['composition']) ? $row['composition'] : "");
         $this->setManufacturer(isset($row['manufacturer']) ? $row['manufacturer'] : "");
         $this->setCountry(isset($row['country']) ? $row['country'] : "");
-        $this->setVid(isset($row['vid']) ? $row['vid'] : null);
-        $this->setUpc(isset($row['upc']) ? $row['upc'] : 0);
-        $this->setSize(isset($row['size']) ? $row['size'] : 0);
-        $this->setColor(isset($row['color']) ? $row['color'] : 0);
-        $this->setStock(isset($row['stock']) ? $row['stock'] : 1);
+        if (isset($row['vid'])) {
+            $this->setVid((int)$row['vid']);
+            $this->setUpc($row['upc'] ?? 0);
+            $this->setSize($row['size'] ?? 0);
+            $this->setColor($row['color'] ?? 0);
+            $this->setStock($row['stock'] ?? 1);
+        } else {
+            $this->setVid(0);
+            $this->setUpc(0);
+            $this->setSize(0);
+            $this->setColor(0);
+            $this->setStock(0);
+        }
     }
 
     public function getID()
@@ -234,34 +242,30 @@ class Product
 
     public function setImages($images)
     {
-        //$jsonData = json_decode(strVal($images));
-        //$this->_images = $images;
-        //die(var_dump(json_decode('[{"image":"zumba-for-all-muscle-tanks-9-pk-multi.jpg","color":"multi"}]')));
-        $jsonData = json_decode($images);
+        if (is_string($images)) {
+            $images = json_decode($images, true);
 
-        if (json_last_error() !== JSON_ERROR_NONE || !is_array($jsonData)) {
-            //$this->_images = array((object)[{"image" : "default.png", "color" : "bold black"}]);
-            throw new ProductException("Not a valid JSON format for images for product ID - " . $this->_id . " (" . json_encode($images) . ")");
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new ProductException("Product images error");
+            }
         }
 
-        $this->_images = $jsonData;
+        if (!is_array($images)) {
+            throw new ProductException("Product images error");
+        }
+
+        $this->_images = $images;
     }
 
     public function setCategory($category)
     {
-        if (!is_string($category) || trim($category) === '') {
-            throw new ProductException("Product category error");
+        if ($category === null || $category === '') {
+            $this->_category = '';
+            return;
         }
 
-        $categories = explode(',', $category);
-
-        foreach ($categories as $id) {
-            if (
-                filter_var(trim($id), FILTER_VALIDATE_INT) === false
-                || (int) $id < 1
-            ) {
-                throw new ProductException("Product category error");
-            }
+        if (!is_string($category)) {
+            throw new ProductException("Product category error");
         }
 
         $this->_category = $category;

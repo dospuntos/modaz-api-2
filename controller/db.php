@@ -67,6 +67,7 @@ class DB
         $db->tblproducts = $prefix . 'modaz_products';
         $db->tblproductvariants = $prefix . 'modaz_product_variants';
         $db->tblcategories = $prefix . 'categories';
+        $db->tblproductcategories = $prefix . 'product_categories';
 
         // Image directory
         $db->img_folder = rtrim($config['image_path'], '/\\')
