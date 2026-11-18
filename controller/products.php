@@ -22,6 +22,7 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
 
     $productid = $_GET['productid'];
 
+
     if ($productid === '' || !is_numeric($productid)) {
         sendResponse(400, false, "Product ID cannot be blank or must be numeric");
     }
@@ -29,27 +30,57 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
     if ($_SERVER['REQUEST_METHOD'] === 'GET') { // Return product by ID
 
         try {
-            $query = $readDB->prepare("
-                SELECT
-                    p.id, p.name, p.state, p.description, p.images,
-                    COALESCE(
-                        (
-                            SELECT GROUP_CONCAT(pc.category_id ORDER BY pc.category_id SEPARATOR ',')
-                            FROM `$readDB->tblproductcategories` pc
-                            WHERE pc.product_id = p.id
-                        ),
-                        ''
-                    ) AS category,
-                    p.featured, p.orderdate, p.release_date, p.season,
-                    p.wholesaleprice, p.msrp, p.price, p.zinprice,
-                    p.price_discount, p.weight, p.composition, p.manufacturer,
-                    p.country, v.id AS vid, v.product_id, v.upc, v.size,
-                    v.color, v.stock
-                FROM $readDB->tblproducts p
-                JOIN $readDB->tblproductvariants v ON v.product_id = p.id
-                WHERE p.id = :productid
-                AND p.state = 1
-            ");
+            $sql = "
+            SELECT
+                p.id,
+                p.name,
+                p.description,
+                p.images,
+                COALESCE(
+                    (
+                        SELECT GROUP_CONCAT(
+                            pc.category_id
+                            ORDER BY pc.category_id
+                            SEPARATOR ','
+                        )
+                        FROM `{$readDB->tblproductcategories}` pc
+                        WHERE pc.product_id = p.id
+                    ),
+                    ''
+                ) AS category,
+                p.featured,
+                p.orderdate,
+                p.release_date,
+                p.season,
+                p.price,
+                p.zinprice,
+                p.price_discount,
+                p.weight,
+                p.composition,
+                p.manufacturer,
+                p.country
+        ";
+
+            // Additional fields for authenticated users
+            if ($userId) {
+                $sql .= ",
+                p.state,
+                p.wholesaleprice,
+                p.msrp
+            ";
+            }
+
+            $sql .= "
+            FROM {$readDB->tblproducts} p
+            WHERE p.id = :productid
+        ";
+
+            // Public users can only access published products
+            if (!$userId) {
+                $sql .= " AND p.state = 1";
+            }
+
+            $query = $readDB->prepare($sql);
             $query->bindParam(':productid', $productid, PDO::PARAM_INT);
             $query->execute();
 
@@ -59,15 +90,17 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
                 sendResponse(404, false, "Product not found");
             }
 
+            $productArray = [];
+
             while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
                 $product = new Product($userId, $row);
                 $productArray[] = $product->returnProductAsArray();
             }
 
-            $returnData = array();
-            //$returnData['rows_returned'] = $rowCount; // This returns rowCount before joining variants by product name
-            $returnData['rows_returned'] = count($productArray);
-            $returnData['products'] = $productArray;
+            $returnData = [
+                'rows_returned' => count($productArray),
+                'products' => $productArray
+            ];
 
             sendResponse(200, true, null, true, $returnData);
         } catch (ProductException $ex) {

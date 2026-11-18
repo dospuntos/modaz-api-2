@@ -44,3 +44,5 @@ RewriteRule ^variants/([0-9]+)$ controller/variants.php?variantid=$1 [L]
 # The following rule will increase or decrease variant stock by 1
 RewriteRule ^variants/([0-9]+)/(.+)/?$ controller/variants.php?variantid=$1&increase=$2 [L]
 RewriteRule ^variants$ controller/variants.php [L]
+
+RewriteRule ^statistics$ controller/statistics.php [L]
