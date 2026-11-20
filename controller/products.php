@@ -20,8 +20,9 @@ $userId = simpleCheckAuthStatusAndReturnUserID($writeDB);
 
 if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
 
-    $productid = $_GET['productid'];
+    if (!$userId) sendResponse(401, false, "User not authorized or not logged in.");
 
+    $productid = $_GET['productid'];
 
     if ($productid === '' || !is_numeric($productid)) {
         sendResponse(400, false, "Product ID cannot be blank or must be numeric");
@@ -522,6 +523,8 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
     }
 } elseif (array_key_exists("published", $_GET)) { // Return published/unpublised products
 
+    if (!$userId) sendResponse(401, false, "User not authorized or not logged in.");
+
     $published = $_GET['published'];
 
     if ($published !== '1' && $published !== '0') {
@@ -560,6 +563,8 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
     }
 } elseif (array_key_exists("page", $_GET)) { // Return pagination
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+
+        if (!$userId) sendResponse(401, false, "User not authorized or not logged in.");
 
         $page = $_GET['page'];
 
@@ -633,49 +638,67 @@ if (array_key_exists("productid", $_GET)) { // GET/PATCH product by ID
 
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         try {
-            //$query = $readDB->prepare("SELECT p.id, p.name, p.state, p.description, p.images, p.category, p.featured, p.orderdate, p.release_date, p.season, p.wholesaleprice, p.msrp, p.price, p.zinprice, p.price_discount, p.weight, p.composition, p.manufacturer, p.country, v.id AS vid, v.product_id, v.upc, v.size, v.color, v.stock FROM $readDB->tblproducts p, $readDB->tblproductvariants v WHERE p.id = v.product_id ORDER BY p.name ASC");
-            $query = $readDB->prepare("
-                SELECT
-                    p.id, p.name, p.state, p.description, p.images,
-                    COALESCE(
-                        (
-                            SELECT GROUP_CONCAT(pc.category_id ORDER BY pc.category_id SEPARATOR ',')
-                            FROM `$readDB->tblproductcategories` pc
-                            WHERE pc.product_id = p.id
-                        ),
-                        ''
-                    ) AS category,
-                    p.featured, p.orderdate, p.release_date, p.season,
-                    p.wholesaleprice, p.msrp, p.price, p.zinprice,
-                    p.price_discount, p.weight, p.composition, p.manufacturer,
-                    p.country, v.id AS vid, v.product_id, v.upc, v.size,
-                    v.color, v.stock
-                FROM $readDB->tblproducts p
-                JOIN $readDB->tblproductvariants v ON v.product_id = p.id
-            ");
+            $select = "
+    SELECT
+        p.id, p.name, p.description, p.images,
+        COALESCE(
+            (
+                SELECT GROUP_CONCAT(pc.category_id ORDER BY pc.category_id SEPARATOR ',')
+                FROM `$readDB->tblproductcategories` pc
+                WHERE pc.product_id = p.id
+            ),
+            ''
+        ) AS category,
+        p.featured, p.orderdate, p.release_date, p.season,
+        p.weight, p.composition, p.manufacturer, p.country,
+        v.id AS vid, v.product_id, v.upc, v.size, v.color
+";
 
+            if ($userId) {
+                $select .= ",
+        p.state, p.wholesaleprice, p.msrp, p.price, p.zinprice,
+        p.price_discount, v.stock,
+        (
+            SELECT COALESCE(SUM(s.stock), 0)
+            FROM `{$readDB->tblproductvariants}` s
+            WHERE s.product_id = p.id
+        ) AS totalstock
+    ";
+            }
+
+            $sql = $select . "
+    FROM {$readDB->tblproducts} p
+    JOIN `{$readDB->tblproductvariants}` v ON v.product_id = p.id
+";
+
+            if (!$userId) {
+                $sql .= " WHERE p.state = 1";
+            }
+
+            $query = $readDB->prepare($sql);
             $query->execute();
 
-            $productsArray = array();
+            $productsArray = [];
 
-            $rowCount = $query->rowCount();
             while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
-                // Skip if no userId (not logged in) and product is unpublished
-                // Todo: Filter directly in DB request, e.g. 'WHERE p.id = v.product_id AND p.state = 1'
-                if (!$userId && (int) $row['state'] !== 1) continue;
-
                 $product = new Product($userId, $row);
                 $productsArray[] = $product->returnProductAsArray();
             }
 
             $joinedProducts = joinProductsById($productsArray);
 
-            $returnData = array();
-            //$returnData['rows_returned'] = $rowCount;
+            $returnData = [
+                'rows_returned' => count($joinedProducts),
+                'products' => $joinedProducts
+            ];
 
-            $returnData['rows_returned'] = count($joinedProducts);
-            $returnData['products'] = $joinedProducts;
-            sendResponse(200, true, $userId ? null : "Request by Anonymous user", true, $returnData);
+            sendResponse(
+                200,
+                true,
+                $userId ? null : "Request by Anonymous user",
+                true,
+                $returnData
+            );
             exit;
         } catch (ProductException $ex) {
             sendResponse(500, false, $ex->getMessage());

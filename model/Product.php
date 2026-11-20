@@ -25,6 +25,7 @@ class Product
     private $_composition;
     private $_manufacturer;
     private $_country;
+    private $_totalstock;
 
     private $_vid;
     private $_upc;
@@ -34,33 +35,35 @@ class Product
 
     public function __construct($userId, $row)
     {
-        $this->setID(isset($row['id']) ? $row['id'] : null);
+        $this->setID($row['id'] ?? null);
         $this->setName($row['name']);
-        $this->setState(isset($row['state']) ? $row['state'] : 1);
-        $this->setDescription(isset($row['description']) ? $row['description'] : null);
-        $this->setImages(isset($row['images']) ? $row['images'] : '[{"image" : "default.png", "color" : "bold black"}]');
-        $this->setCategory(isset($row['category']) ? $row['category'] : 8);
-        $this->setFeatured(isset($row['featured']) ? $row['featured'] : 0);
-        $this->setOrderdate(isset($row['orderdate']) ? $row['orderdate'] : "0000-00-00");
-        $this->setRelease_date(isset($row['release_date']) ? $row['release_date'] : "0000-00-00");
-        $this->setSeason(isset($row['season']) ? $row['season'] : "");
-        $this->setWholesaleprice(isset($row['wholesaleprice']) ? $row['wholesaleprice'] : 0, $userId);
-        $this->setMsrp(isset($row['msrp']) ? $row['msrp'] : 0, $userId);
-        $this->setPrice(isset($row['price']) ? $row['price'] : 0);
-        $this->setZinprice(isset($row['zinprice']) ? $row['zinprice'] : 0);
-        $this->setPriceDiscount(isset($row['price_discount']) ? $row['price_discount'] : 0);
-        $this->setTags(isset($row['tags']) ? $row['tags'] : "");
-        $this->setNotes(isset($row['notes']) ? $row['notes'] : "");
-        $this->setWeight(isset($row['weight']) ? $row['weight'] : "0");
-        $this->setComposition(isset($row['composition']) ? $row['composition'] : "");
-        $this->setManufacturer(isset($row['manufacturer']) ? $row['manufacturer'] : "");
-        $this->setCountry(isset($row['country']) ? $row['country'] : "");
+        $this->setState($row['state'] ?? 1);
+        $this->setDescription($row['description'] ?? null);
+        $this->setImages($row['images'] ?? '[{"image" : "default.png", "color" : "bold black"}]');
+        $this->setCategory($row['category'] ?? 8);
+        $this->setFeatured($row['featured'] ?? 0);
+        $this->setOrderdate($row['orderdate'] ?? "0000-00-00");
+        $this->setRelease_date($row['release_date'] ?? "0000-00-00");
+        $this->setSeason($row['season'] ?? "");
+        $this->setWholesaleprice($row['wholesaleprice'] ?? 0, $userId);
+        $this->setMsrp($row['msrp'] ?? 0, $userId);
+        $this->setPrice($row['price'] ?? 0);
+        $this->setZinprice($row['zinprice'] ?? 0);
+        $this->setPriceDiscount($row['price_discount'] ?? 0);
+        $this->setTags($row['tags'] ?? "");
+        $this->setNotes($row['notes'] ?? "");
+        $this->setWeight($row['weight'] ?? "0");
+        $this->setComposition($row['composition'] ?? "");
+        $this->setManufacturer($row['manufacturer'] ?? "");
+        $this->setCountry($row['country'] ?? "");
+        $this->setTotalStock($row['totalstock'] ?? 0);
+
         if (isset($row['vid'])) {
             $this->setVid((int)$row['vid']);
             $this->setUpc($row['upc'] ?? 0);
             $this->setSize($row['size'] ?? 0);
             $this->setColor($row['color'] ?? 0);
-            $this->setStock($row['stock'] ?? 1);
+            $this->setStock($row['stock'] ?? 0);
         } else {
             $this->setVid(0);
             $this->setUpc(0);
@@ -173,6 +176,11 @@ class Product
     public function getCountry()
     {
         return $this->_country;
+    }
+
+    public function getTotalStock()
+    {
+        return $this->_totalstock;
     }
 
     public function getVid()
@@ -375,6 +383,11 @@ class Product
         $this->_country = $country;
     }
 
+    public function setTotalStock($stock)
+    {
+        $this->_totalstock = $stock;
+    }
+
     public function setVid(int $vid)
     {
         $this->_vid = $vid;
@@ -432,6 +445,7 @@ class Product
         $product['composition'] = $this->getComposition();
         $product['manufacturer'] = $this->getManufacturer();
         $product['country'] = $this->getCountry();
+        $product['totalstock'] = $this->getTotalstock();
         $product['vid'] = $this->getVid();
         $product['upc'] = $this->getUpc();
         $product['size'] = $this->getSize();

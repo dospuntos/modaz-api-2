@@ -137,26 +137,40 @@ function simpleCheckAuthStatusAndReturnUserID($writeDB)
 
 function joinProductsById($productsArray)
 {
-    // Join items and return array with products and variants
     $result = array();
-    foreach ($productsArray as $i => $item) {
-        $mainProduct = array_slice($item, 0, 19);
-        $variant = array_slice($item, 19);
 
-        if (!array_key_exists($item['id'], $result)) {
-            $result[$item['id']] = array();
-            $result[$item['id']] = $mainProduct;
-            $result[$item['id']]['totalstock'] = 0;
+    $variantFields = [
+        'vid',
+        'product_id',
+        'upc',
+        'size',
+        'color',
+        'stock'
+    ];
+
+    foreach ($productsArray as $item) {
+        $productId = $item['id'];
+
+        // Separate product and variant data
+        $product = $item;
+        $variant = [];
+
+        foreach ($variantFields as $field) {
+            if (array_key_exists($field, $item)) {
+                $variant[$field] = $item[$field];
+                unset($product[$field]);
+            }
         }
-        // Add variants
-        $result[$item['id']]['variants'][] = $variant;
 
-        // Update totalstock-count
-        end($result[$item['id']]['variants']);
-        $last_id = key($result[$item['id']]['variants']);
-        $result[$item['id']]['totalstock'] = $result[$item['id']]['totalstock'] + $result[$item['id']]['variants'][$last_id]['stock'];
+        // Initialize product
+        if (!array_key_exists($productId, $result)) {
+            $result[$productId] = $product;
+            $result[$productId]['variants'] = [];
+        }
+
+        // Add variant
+        $result[$productId]['variants'][] = $variant;
     }
-    // End join
 
     return array_values($result);
 }
